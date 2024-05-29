@@ -5,6 +5,7 @@ import java.util.List;
 import objects.Hit;
 import analysis.Module;
 import objects.Event;
+import objects.True;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
@@ -68,6 +69,10 @@ public class DCmodule extends Module {
     public void fillHistos(Event event) {
         if(event.getHits(DetectorType.DC)!=null) {
             this.fillOccupancies(this.getHistos().get("Sector Occupancy"), event.getHits(DetectorType.DC));
+        }
+        if(event.getTrues(DetectorType.DC)!=null) {
+            for(True t : event.getTrues(DetectorType.DC))
+                System.out.println(t.toString());
         }
     }
     

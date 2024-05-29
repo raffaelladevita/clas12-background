@@ -122,9 +122,9 @@ public class True implements Comparable {
         hit.setPosition(new Point3D(mc.getFloat("avgX", row),
                                     mc.getFloat("avgY", row),
                                     mc.getFloat("avgZ", row)));
-        hit.setVertex(new Point3D(mc.getFloat("vX", row),
-                                    mc.getFloat("vY", row),
-                                    mc.getFloat("vZ", row)));
+        hit.setVertex(new Point3D(mc.getFloat("vx", row),
+                                    mc.getFloat("vy", row),
+                                    mc.getFloat("vz", row)));
         hit.setTID(mc.getInt("tid", row));
         hit.setPID(mc.getInt("pid", row));
         hit.setMPID(mc.getInt("mpid", row));
