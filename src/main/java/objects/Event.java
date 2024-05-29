@@ -89,28 +89,16 @@ public class Event {
 
     private void readTrues(DataEvent event, DetectorType type) {
         DataBank mc  = this.getBank(event, "MC::True");
-        DataBank bmt = this.getBank(event, "BMT::adc");
-        DataBank bst = this.getBank(event, "BST::adc");
-        if(mc==null || (bmt==null && bst==null)) return;
-        int nrows =0;
-        if(bst!=null) nrows += bst.rows();
-        if(bmt!=null) nrows += bmt.rows();
-        if(mc.rows() != nrows) return;
-        int offset = 0;
-        if(bmt!=null) {
-            for(int i=0; i<bmt.rows(); i++) {
-                True t = True.readTruth(bmt, mc, i, offset, DetectorType.BMT);
-//                if(t!=null) trues.put(type, t);
+        if(mc==null) return;
+        for(int i=0; i<mc.rows(); i++) {
+            if(mc.getByte("detector", i)==type.getDetectorId()) {
+                True t = True.readTruth(mc, i);
+                if(!trues.containsKey(type)) 
+                    trues.put(type, new ArrayList<>());
+                trues.get(type).add(t);
             }
-            offset += bmt.rows();
-        }
-        if(bst!=null) {
-            for(int i=0; i<bst.rows(); i++) {
-                True t = True.readTruth(bst, mc, i, offset, DetectorType.BST);
-//                if(t!=null) trues.add(t);
-            }
-        }
 //        Collections.sort(trues);
+        }
     }
     
 

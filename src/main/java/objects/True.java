@@ -11,39 +11,23 @@ import org.jlab.io.base.DataBank;
  */
 public class True implements Comparable {
  
-    private final int id;
-    private final int sector;
-    private final int layer;
-    private final int strip;
+    private final int hitn;
     private final DetectorType type;
     
     private double time;
+    private double edep;
     private double energy;
     private Vector3D momentum;
     private Point3D  position;
     private Point3D  vertex;
+    private int tid;
     private int pid;
     private int mpid;
     
     
-    public True(int id, int sector, int layer, int strip, DetectorType type) {
-        this.id = id;
-        this.sector = sector;
-        this.layer = layer;
-        this.strip = strip;
+    public True(int hitn, DetectorType type) {
+        this.hitn = hitn;
         this.type = type;
-    }
-
-    public int getSector() {
-        return sector;
-    }
-
-    public int getLayer() {
-        return layer;
-    }
-
-    public int getStrip() {
-        return strip;
     }
 
     public DetectorType getType() {
@@ -64,6 +48,14 @@ public class True implements Comparable {
 
     public void setTime(double time) {
         this.time = time;
+    }
+
+    public double getEdep() {
+        return edep;
+    }
+
+    public void setEdep(double edep) {
+        this.edep = edep;
     }
 
     public Vector3D getMomentum() {
@@ -90,6 +82,14 @@ public class True implements Comparable {
         this.vertex = vertex;
     }
 
+    public int getTid() {
+        return tid;
+    }
+
+    public void setTID(int tid) {
+        this.tid = tid;
+    }
+
     public int getPid() {
         return pid;
     }
@@ -107,38 +107,28 @@ public class True implements Comparable {
     }
     
     public String getName() {
-        if(this.type==DetectorType.BST)
-            return "SVT";
-        else {
-            if(layer==1 || layer==4 || layer==6)
-                return "BMTC";
-            else
-                return "BMTZ";
-        }
+        return this.type.getName();
     }
     
-    public static True readTruth(DataBank adc, DataBank mc, int row, int offset, DetectorType type) {
-        True hit = new True(row,
-                          adc.getByte("sector", row),
-                          adc.getByte("layer", row),
-                          adc.getInt("component", row),
-                          type);
-        hit.setEnergy(mc.getFloat("trackE", row+offset));
-        hit.setTime(mc.getFloat("avgT", row+offset));
-        hit.setMomentum(new Vector3D(mc.getFloat("px", row+offset),
-                                     mc.getFloat("py", row+offset),
-                                     mc.getFloat("pz", row+offset)).divide(1000));
-        hit.setPosition(new Point3D(mc.getFloat("avgX", row+offset),
-                                    mc.getFloat("avgY", row+offset),
-                                    mc.getFloat("avgZ", row+offset)));
-        hit.setVertex(new Point3D(mc.getFloat("vX", row+offset),
-                                    mc.getFloat("vY", row+offset),
-                                    mc.getFloat("vZ", row+offset)));
-        int tid = mc.getInt("tid", row+offset);
-        if(tid==1)
-            return hit;
-        else 
-            return null;
+    public static True readTruth(DataBank mc, int row) {
+        True hit = new True(mc.getInt("hitn", row),
+                            DetectorType.getType(mc.getInt("detector", row)));
+        hit.setEnergy(mc.getFloat("trackE", row));
+        hit.setEdep(mc.getFloat("totEdep", row));
+        hit.setTime(mc.getFloat("avgT", row));
+        hit.setMomentum(new Vector3D(mc.getFloat("px", row),
+                                     mc.getFloat("py", row),
+                                     mc.getFloat("pz", row)).divide(1000));
+        hit.setPosition(new Point3D(mc.getFloat("avgX", row),
+                                    mc.getFloat("avgY", row),
+                                    mc.getFloat("avgZ", row)));
+        hit.setVertex(new Point3D(mc.getFloat("vX", row),
+                                    mc.getFloat("vY", row),
+                                    mc.getFloat("vZ", row)));
+        hit.setTID(mc.getInt("tid", row));
+        hit.setPID(mc.getInt("pid", row));
+        hit.setMPID(mc.getInt("mpid", row));
+        return hit;
     }
 
     @Override
@@ -151,8 +141,8 @@ public class True implements Comparable {
     
     @Override
     public String toString() {
-        String s = String.format("True: detector=%s id=%d sector=%d layer=%d time=%.3f ns E=%.3f GeV p=%.3f GeV", 
-                                  this.type.getName(), this.id, this.sector, this.layer, this.time, this.energy, this.momentum.mag());
+        String s = String.format("True: detector=%s id=%d time=%.3f ns E=%.3f GeV p=%.3f GeV", 
+                                  this.type.getName(), this.hitn, this.time, this.energy, this.momentum.mag());
         return s;
     }
     
