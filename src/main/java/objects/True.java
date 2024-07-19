@@ -35,8 +35,15 @@ public class True implements Comparable {
     }
 
     public double getEnergy() {
+        
         return energy;
     }
+
+    public int getHitn() {
+        
+        return hitn;
+    }    
+    
 
     public void setEnergy(double energy) {
         this.energy = energy;

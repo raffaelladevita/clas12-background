@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import objects.Event;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.groot.data.H1F;
@@ -21,6 +23,7 @@ import org.jlab.groot.graphics.EmbeddedPad;
 import org.jlab.groot.graphics.IDataSetPlotter;
 import org.jlab.groot.group.DataGroup;
 import org.jlab.groot.math.F1D;
+import org.jlab.groot.ui.LatexText;
 
 /**
  *
@@ -86,8 +89,9 @@ public class Module {
         return moduleGroup;
     }
     
-    public H1F histo1D(String name, String xTitle, String yTitle, int nbins, double min, double max, int color) {
-        H1F histo = new H1F(name, "", nbins, min, max);
+    public H1F histo1D(String name, String name1, String xTitle, String yTitle, int nbins, double min, double max, int color) {
+        H1F histo = new H1F(name, name1, nbins, min, max);
+    //    histo.setTitle("");
         histo.setTitleX(xTitle);
         histo.setTitleY(yTitle);
         histo.setFillColor(color);
@@ -95,7 +99,8 @@ public class Module {
     }
 
     public H2F histo2D(String name, String xTitle, String yTitle, int xBins, double xMin, double xMax, int yBins, double yMin, double yMax) {
-        H2F histo = new H2F(name, "", xBins, xMin, xMax, yBins, yMin, yMax);
+        H2F histo = new H2F(name, name, xBins, xMin, xMax, yBins, yMin, yMax);
+        histo.setTitle("");
         histo.setTitleX(xTitle);
         histo.setTitleY(yTitle);
         return histo;
@@ -117,6 +122,12 @@ public class Module {
         return this.moduleCanvas;
     }
 
+    
+    public void setHistoAttr(H1F a, int col){
+        a.setLineColor(col);
+        a.setLineWidth(2);      
+    }
+    
     public void drawHistos() {
         for(String key : moduleGroup.keySet()) {            
             this.addCanvas(key);
@@ -145,7 +156,8 @@ public class Module {
     
     public void setPlottingOptions(String name) {
         this.getCanvas().getCanvas(name).setGridX(false);
-        this.getCanvas().getCanvas(name).setGridY(false);        
+        this.getCanvas().getCanvas(name).setGridY(false); 
+    
     }
 
     public void setLogZ(String name) {
@@ -153,6 +165,7 @@ public class Module {
             p.getAxisZ().setLog(true);
         }
     }
+    
 
     public void setH1LineWidth(String name) {
         for(EmbeddedPad p : this.getCanvas().getCanvas(name).getCanvasPads()) {
@@ -237,6 +250,7 @@ public class Module {
     public void fitDataGroup(DataGroup dg) {
         int nx = dg.getColumns();
         int ny = dg.getRows();
+        F1D a = null;
         for(int i=0; i<nx*ny; i++) {
             List<IDataSet> ds = dg.getData(i);
             for(IDataSet d : ds) {
@@ -244,6 +258,24 @@ public class Module {
                     this.fitGauss((H1F) d);
             }
         }
+    }
+    
+    public F1D fitPol0(H1F histo) {
+        String hname = histo.getName();
+        int   lastbin = histo.getAxis().getNBins();
+        double min  =  histo.getAxis().getBinCenter(0);
+        double max  =  histo.getAxis().getBinCenter(lastbin-1);
+        double amp = histo.getBinContent(lastbin-1); 
+        F1D f1 = new F1D("f_"+hname, "[p0]", min-0.5
+                , max+0.5);
+        int col = histo.getLineColor();
+        f1.setParameter(0, amp);
+        f1.setLineColor(col);
+        f1.setLineWidth(2);
+        //f1.setOptStat(111110);
+        DataFitter.fit(f1, histo, "Q");
+        return f1;
+        
     }
     
     public void fitGauss(H1F histo) {
@@ -274,7 +306,7 @@ public class Module {
         }
     }
     
-    private final void normalize(DataGroup dg, double factor) {
+    public final void normalize(DataGroup dg, double factor) {
         int nrow = dg.getRows();
         int ncol = dg.getColumns();
         for(int i=0; i<nrow*ncol; i++) {
@@ -300,7 +332,13 @@ public class Module {
     }
     
     public final void normalizeToTime(IDataSet ds) {
-        this.normalize(ds, nevents*Constants.getTimeWindow()); // kHz
+        
+        this.normalize(ds, nevents*(Constants.getTimeWindow()*1E-9)/1E-6); // MHz
+    }
+    
+    public void normalizeToTime(DataGroup dg) {
+      
+        this.normalize(dg, nevents * (Constants.getTimeWindow()*1E-9)/1E-6); // MHz
     }
     
     public void printHistogram(H2F h2) {
@@ -319,4 +357,49 @@ public class Module {
             System.out.println(ex.getMessage());
         }
     }
+    
+    public final String extractNumber(String str) {
+        Pattern pattern = Pattern.compile("\\d+");
+        Matcher matcher = pattern.matcher(str);
+
+        if (matcher.find()) {
+            return matcher.group();
+        }
+        return null;
+    }
+    
+    
+    
+    public void setTextCanvas(String name) {
+        DataGroup dg = this.getHistos().get(name);
+        int nx = dg.getColumns();
+        int ny = dg.getRows();
+        LatexText LT = null;
+        for (int i = 0; i < nx * ny; i++) {
+            List<IDataSet> ds = dg.getData(i);
+            for (IDataSet d : ds) {
+                if (d instanceof H1F) {
+                    String nm = ((H1F) d).getName();
+                    int col = ((H1F) d).getLineColor();
+                    LT = setLatex(nm, col);
+                    this.getCanvas().getCanvas(name).draw(LT);
+                }
+            }
+
+        }
+    }
+
+    public LatexText setLatex(String text, int color) {
+        LatexText LT = new LatexText(text, 0, 0);
+        LT.setColor(color);
+        LT.setFontSize(30);
+        double pos =(color-1)*30;
+        LT.setLocation(50., pos);
+        return LT;
+    }
+
+
+
+
+
 } 
