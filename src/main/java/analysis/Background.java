@@ -6,6 +6,7 @@ import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
 import modules.DCmodule;
+import modules.FTCALmodule;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.groot.base.GStyle;
 import org.jlab.groot.data.H1F;
@@ -46,22 +47,24 @@ public class Background {
     private void init(String active, double window, String opts) {
         OPTSTAT = opts;
         GStyle.getH1FAttributes().setOptStat(opts);
-        GStyle.getAxisAttributesX().setTitleFontSize(24);
-        GStyle.getAxisAttributesX().setLabelFontSize(18);
-        GStyle.getAxisAttributesY().setTitleFontSize(24);
-        GStyle.getAxisAttributesY().setLabelFontSize(18);
-        GStyle.getAxisAttributesZ().setLabelFontSize(14);
-//        GStyle.getAxisAttributesX().setLabelFontName("Arial");
-//        GStyle.getAxisAttributesY().setLabelFontName("Arial");
-//        GStyle.getAxisAttributesZ().setLabelFontName("Arial");
-//        GStyle.getAxisAttributesX().setTitleFontName("Arial");
-//        GStyle.getAxisAttributesY().setTitleFontName("Arial");
-//        GStyle.getAxisAttributesZ().setTitleFontName("Arial");
+        GStyle.getAxisAttributesX().setTitleFontSize(18);
+        GStyle.getAxisAttributesX().setLabelFontSize(14);
+        GStyle.getAxisAttributesY().setTitleFontSize(18);
+        GStyle.getAxisAttributesY().setLabelFontSize(14);
+        GStyle.getAxisAttributesZ().setLabelFontSize(12);
+        GStyle.getAxisAttributesX().setLabelFontName("Arial");
+        GStyle.getAxisAttributesY().setLabelFontName("Arial");
+        GStyle.getAxisAttributesZ().setLabelFontName("Arial");
+        GStyle.getAxisAttributesX().setTitleFontName("Arial");
+        GStyle.getAxisAttributesY().setTitleFontName("Arial");
+        GStyle.getAxisAttributesZ().setTitleFontName("Arial");
         GStyle.setGraphicsFrameLineWidth(2);
         GStyle.getH1FAttributes().setLineWidth(1);
+        GStyle.setPalette("kRainBow");
 
         Constants.setTimeWindow(window);  
         this.addModule(active, new DCmodule(1));
+        this.addModule(active, new FTCALmodule(1));
     }
 
     private void addModule(String active, Module module) {

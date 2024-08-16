@@ -106,6 +106,14 @@ public class Module {
         return histo;
     }
 
+    public H2F histo2D(String name, String title, String xTitle, String yTitle, int xBins, double xMin, double xMax, int yBins, double yMin, double yMax) {
+        H2F histo = new H2F(name, name, xBins, xMin, xMax, yBins, yMin, yMax);
+        histo.setTitle(title);
+        histo.setTitleX(xTitle);
+        histo.setTitleY(yTitle);
+        return histo;
+    }
+
     public final void init() {
         this.nevents = 0;
         createHistos();
@@ -135,6 +143,10 @@ public class Module {
             this.setPlottingOptions(key);
             this.moduleCanvas.getCanvas(key).setGridX(false);
             this.moduleCanvas.getCanvas(key).setGridY(false);
+            for(EmbeddedPad pad : this.moduleCanvas.getCanvas(key).getCanvasPads()) {
+                pad.setTitleFontSize(18);
+                pad.setTitleFont("Arial");
+            }
         }
     }
     
@@ -155,9 +167,7 @@ public class Module {
     }
     
     public void setPlottingOptions(String name) {
-        this.getCanvas().getCanvas(name).setGridX(false);
-        this.getCanvas().getCanvas(name).setGridY(false); 
-    
+        
     }
 
     public void setLogZ(String name) {
@@ -239,7 +249,7 @@ public class Module {
             for(int i = 0; i < nds; i++){
                 List<IDataSet> dsList = group.getData(i);
                 for(IDataSet ds : dsList){
-                    System.out.println("\t --> " + ds.getName());
+//                    System.out.println("\t --> " + ds.getName());
                     dir.addDataSet(ds);
                 }
             }
@@ -295,7 +305,7 @@ public class Module {
         DataFitter.fit(f1, histo, "Q");
     }  
     
-    private final void normalize(IDataSet ds, double factor) {
+    public final void normalize(IDataSet ds, double factor) {
         if(ds instanceof H1F) {
             H1F h = (H1F) ds;
             h.divide(factor);
@@ -311,14 +321,7 @@ public class Module {
         int ncol = dg.getColumns();
         for(int i=0; i<nrow*ncol; i++) {
             for(IDataSet ds : dg.getData(i)) {
-                if(ds instanceof H1F) {
-                    H1F h = (H1F) ds;
-                    h.divide(factor);
-                }
-                else if(ds instanceof H2F) {
-                    H2F h = (H2F) ds;
-                    h.normalize(factor);
-                }
+                this.normalize(ds, factor);
             }
         }
     }
@@ -331,14 +334,29 @@ public class Module {
         this.normalize(dg, nevents);
     }
     
+    public final void normalizeToEventsX100(IDataSet ds) {
+        this.normalize(ds, 0.01*nevents);
+    }
+    
+    public final void normalizeToEventsX100(DataGroup dg) {
+        this.normalize(dg, 0.01*nevents);
+    }
+    
     public final void normalizeToTime(IDataSet ds) {
         
-        this.normalize(ds, nevents*(Constants.getTimeWindow()*1E-9)/1E-6); // MHz
+        this.normalize(ds, Constants.getTimeWindow()*1E-9*nevents/1E-6); // MHz
     }
     
     public void normalizeToTime(DataGroup dg) {
       
-        this.normalize(dg, nevents * (Constants.getTimeWindow()*1E-9)/1E-6); // MHz
+        this.normalize(dg, Constants.getTimeWindow()*1E-9*nevents/1E-6); // MHz
+    }
+    
+    public final void toDose(IDataSet ds) {
+        double factor = 1.6E-13 // MeV/kg to J/kg
+                      /(Constants.getTimeWindow()*1E-9*nevents) // to J/kg/s
+                      * 3600 *100; //to 0.01 J/kg/h or rad/h
+        this.normalize(ds, Math.pow(factor, -1));
     }
     
     public void printHistogram(H2F h2) {

@@ -1,7 +1,10 @@
 package objects;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.io.base.DataBank;
+import org.jlab.io.base.DataEvent;
 
 /**
  *
@@ -18,6 +21,8 @@ public class Hit {
     private int adc;
     private int tdc;
     private double time;
+
+    private True tru;
     
     public Hit(int index, int sector, int layer, int component, DetectorType type) {
         this.index = index;
@@ -25,6 +30,10 @@ public class Hit {
         this.layer = layer;
         this.strip = component;
         this.type = type;
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     public int getSector() {
@@ -67,6 +76,14 @@ public class Hit {
         this.time = time;
     }
 
+    public True getTrue() {
+        return tru;
+    }
+
+    public void setTrue(True t) {
+        this.tru = t;
+    }
+
     public String getName() {
         if(this.type==DetectorType.BST)
             return "SVT";
@@ -76,6 +93,39 @@ public class Hit {
             else
                 return "BMTZ";
         }
+    }
+    
+    public static List<Hit> readHits(DataEvent event, DetectorType type) {
+        DataBank adcBank = event.getBank(type.getName()+"::adc");
+        DataBank tdcBank = event.getBank(type.getName()+"::tdc");
+        if(adcBank!=null && adcBank.rows()>0) {
+            List<Hit> hits = new ArrayList<>();
+            for(int row=0; row<adcBank.rows(); row++) {
+                Hit hit = new Hit(row,
+                                  adcBank.getByte("sector", row),
+                                  adcBank.getByte("layer", row),
+                                  adcBank.getInt("component", row),
+                                  type);
+                hit.setADC(adcBank.getInt("ADC", row));
+                hit.setTime(adcBank.getFloat("time", row));
+                hits.add(hit);
+            }
+            return hits;
+        }
+        else if(tdcBank!=null && tdcBank.rows()>0) {
+            List<Hit> hits = new ArrayList<>();
+            for(int row=0; row<tdcBank.rows(); row++) {
+                Hit hit = new Hit(row,
+                                  tdcBank.getByte("sector", row),
+                                  tdcBank.getByte("layer", row),
+                                  tdcBank.getInt("component", row),
+                                  type);
+                hit.setTDC(tdcBank.getInt("TDC", row));
+                hits.add(hit);
+            }
+            return hits;                                        
+        }
+        return null;
     }
     
     public static Hit readADC(DataBank bank, int row, DetectorType type) {

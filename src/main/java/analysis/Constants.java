@@ -24,7 +24,7 @@ public class Constants {
     public static final double B = 5; //field in Tesla
     public static final double ALPHA = 1E6/PhysicsConstants.speedOfLight()/B;
 
-    public static double TWINDOW;
+    public static double TWINDOW = 250; // ns
 
     public static double getTimeWindow() {
         return TWINDOW;

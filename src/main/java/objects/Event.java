@@ -1,12 +1,9 @@
 package objects;
 
-import analysis.Constants;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.jlab.clas.detector.DetectorResponse;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.io.base.DataBank;
 import org.jlab.io.base.DataEvent;
@@ -77,14 +74,8 @@ public class Event {
     }
     
     private void readHits(DataEvent event, DetectorType type) {
-        DataBank bank = this.getBank(event, "DC::tdc");
-        if(bank==null) return;
-        for(int i=0; i<bank.rows(); i++) {
-            Hit hit = Hit.readTDC(bank, i, DetectorType.DC);
-            if(hits.get(type)==null) 
-                hits.put(type, new ArrayList<>());
-            hits.get(type).add(hit);
-        }
+        List<Hit> hs = Hit.readHits(event, type);
+        if(hs!=null) this.hits.put(type, hs);
     }
 
     private void readTrues(DataEvent event, DetectorType type) {
@@ -96,8 +87,11 @@ public class Event {
                 if(!trues.containsKey(type)) 
                     trues.put(type, new ArrayList<>());
                 trues.get(type).add(t);
+                if(hits.containsKey(type)) {
+                    if(!hits.get(type).isEmpty() && hits.get(type).size()>=t.getHitn())
+                        hits.get(type).get(t.getHitn()-1).setTrue(t);
+                }
             }
-//        Collections.sort(trues);
         }
     }
     
