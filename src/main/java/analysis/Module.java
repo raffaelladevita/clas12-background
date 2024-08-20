@@ -125,6 +125,23 @@ public class Module {
         this.fillHistos(event);
     }
 
+    public final String pidToName(int pid) {
+        switch (pid) {
+            case 11:
+                return "electron";
+            case 22:
+                return "gamma";
+            case 2112:
+                return "neutron";
+            case 2212:
+                return "proton";
+            case 211:
+                return "pion";
+            default:
+                return null;
+        }
+    }
+    
     public final EmbeddedCanvasTabbed plotHistos() {
         this.drawHistos();
         return this.moduleCanvas;
@@ -364,6 +381,27 @@ public class Module {
         this.normalize(ds, Math.pow(factor, -1));
     }
     
+    public void divide(DataGroup dg1, DataGroup dg2) {
+
+        int nrow = dg1.getRows();
+        int ncol = dg1.getColumns();
+
+        for (int i = 0; i < nrow * ncol; i++) {
+            int idx = 0;
+            for (IDataSet ds1 : dg1.getData(i)) {
+                if (ds1 instanceof H2F) {
+                    H2F h1 = (H2F) ds1;
+                    IDataSet ds2 = dg2.getData(i).get(idx);
+                    if (ds2 instanceof H2F) {
+                        H2F h2 = (H2F) ds2;
+                        h1.divide(h2);
+                    }
+                }
+                idx = idx + 1;
+            }
+        }
+    }
+
     public void printHistogram(H2F h2) {
         try {
             BufferedWriter buffer = new BufferedWriter(new FileWriter(h2.getName() + "_histo.txt"));
@@ -416,6 +454,7 @@ public class Module {
         LatexText LT = new LatexText(text, 0, 0);
         LT.setColor(color);
         LT.setFontSize(30);
+        LT.setFont("Arial");
         double pos =(color-1)*30;
         LT.setLocation(50., pos);
         return LT;

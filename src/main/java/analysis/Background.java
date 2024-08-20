@@ -162,7 +162,7 @@ public class Background {
         parser.addOption("-histo"      ,"0",       "read histogram file (0/1)");
         parser.addOption("-plot"       ,"1",       "display histograms (0/1)");
         parser.addOption("-print"      ,"0",       "print histograms (0/1)");
-        parser.addOption("-stats"      ,"1000001", "histogram stat option (e.g. \"10\" will display entries)");
+        parser.addOption("-stats"      ,"",        "histogram stat option (e.g. \"10\" will display entries)");
         parser.addOption("-time"       ,"250",     "simulated time window per event in ns");
         parser.addOption("-modules"    ,"",        "colon-separated list of modules to be activated");
         

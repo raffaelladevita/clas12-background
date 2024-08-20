@@ -34,16 +34,17 @@ public class True implements Comparable {
         return type;
     }
 
-    public double getEnergy() {
-        
-        return energy;
-    }
-
-    public int getHitn() {
-        
+    public int getHitn() {        
         return hitn;
     }    
     
+    public double getKinEnergy() {        
+        return energy-Math.sqrt(energy*energy-momentum.mag2());
+    }
+
+    public double getEnergy() {        
+        return energy;
+    }
 
     public void setEnergy(double energy) {
         this.energy = energy;
@@ -125,7 +126,7 @@ public class True implements Comparable {
         hit.setTime(mc.getFloat("avgT", row));
         hit.setMomentum(new Vector3D(mc.getFloat("px", row),
                                      mc.getFloat("py", row),
-                                     mc.getFloat("pz", row)).divide(1000));
+                                     mc.getFloat("pz", row)));
         hit.setPosition(new Point3D(mc.getFloat("avgX", row),
                                     mc.getFloat("avgY", row),
                                     mc.getFloat("avgZ", row)));
