@@ -50,16 +50,16 @@ public class FTCALmodule extends Module {
 
     public DataGroup occupancies() {
         DataGroup dg = new DataGroup(3,2);
-        H2F hi_occ_2D     = histo2D("hi_occ_2D", "Occupancy (%)", "X", "Y", NCRYSTALX+3, 0, NCRYSTALX+2, NCRYSTALY+3, 0, NCRYSTALY+2);           
-        H2F hi_rate_2D    = histo2D("hi_rate_2D", "Rate (MHz)", "X", "Y", NCRYSTALX+3, 0, NCRYSTALX+2, NCRYSTALY+3, 0, NCRYSTALY+2);           
-        H2F hi_dose_2D    = histo2D("hi_dose_2D", "Dose (rad/h)", "X", "Y", NCRYSTALX+3, 0, NCRYSTALX+2, NCRYSTALY+3, 0, NCRYSTALY+2);           
-        H2F hi_energy_2D  = histo2D("hi_energy_2D", "Energy deposition rate (MeV/us)", "X", "Y", NCRYSTALX+3, 0, NCRYSTALX+2, NCRYSTALY+3, 0, NCRYSTALY+2);           
+        H2F hi_occ_2D     = histo2D("hi_occ_2D", "Occupancy (%)", "X", "Y", NCRYSTALX+2 , 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
+        H2F hi_rate_2D    = histo2D("hi_rate_2D", "Rate (kHz)", "X", "Y", NCRYSTALX+2 , 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
+        H2F hi_dose_2D    = histo2D("hi_dose_2D", "Dose (rad/h)", "X", "Y", NCRYSTALX+2 , 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
+        H2F hi_edep_2D    = histo2D("hi_edep_2D", "Energy deposition rate (MeV/us)", "X", "Y", NCRYSTALX+2, 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
         H1F hi_occ_1D     = histo1D("hi_occ_1D",  " ", "ID", "Occupancy (%)", NCRYSTALX*NCRYSTALY, 0, NCRYSTALX*NCRYSTALY, 1);           
-        H1F hi_edep_1D    = histo1D("hi_edep_1D",  " ", "Energy (MeV)", "Rate MHz)", 100, 0, 500, 4);           
-        H1F hi_time_1D    = histo1D("hi_time_1D",  " ", "Time (ns)", "Rate MHz)", 100, 0, Constants.getTimeWindow()*1.2, 4);           
+        H1F hi_edep_1D    = histo1D("hi_edep_1D",  " ", "Energy (MeV)", "Rate kHz)", 100, 0, 500, 4); 
+        H1F hi_time_1D    = histo1D("hi_time_1D",  " ", "Time (ns)", "Rate kHz)", 100, 0, Constants.getTimeWindow()*1.2, 4);           
         dg.addDataSet(hi_occ_2D,    0);
         dg.addDataSet(hi_rate_2D,   1);
-        dg.addDataSet(hi_energy_2D, 2);
+        dg.addDataSet(hi_edep_2D, 2);
         dg.addDataSet(hi_edep_1D,   3);
         dg.addDataSet(hi_time_1D,   4);
         dg.addDataSet(hi_dose_2D,   5);
@@ -90,7 +90,7 @@ public class FTCALmodule extends Module {
                 group.getH1F("hi_time_1D").fill(hit.getTrue().getTime());
             }
             group.getH1F("hi_edep_1D").fill(edep);
-            group.getH2F("hi_energy_2D").fill(idx, idy, edep);
+            group.getH2F("hi_edep_2D").fill(idx, idy, edep);
             group.getH2F("hi_dose_2D").fill(idx, idy, edep/WEIGHT);
         }
     }
@@ -98,9 +98,9 @@ public class FTCALmodule extends Module {
     @Override
     public void analyzeHistos() {
         this.normalizeToEventsX100(this.getHistos().get("Occupancy").getH2F("hi_occ_2D"));
-        this.normalizeToEventsX100(this.getHistos().get("Occupancy").getH1F("hi_occ_1D"));
+//        this.normalizeToEventsX100(this.getHistos().get("Occupancy").getH1F("hi_occ_1D"));
         this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_rate_2D"));
-        this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_energy_2D"));
+        this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_edep_2D"), 1E6);
         this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_edep_1D"));
         this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_time_1D"));
         this.toDose(this.getHistos().get("Occupancy").getH2F("hi_dose_2D"));

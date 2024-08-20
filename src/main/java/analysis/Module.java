@@ -342,14 +342,19 @@ public class Module {
         this.normalize(dg, 0.01*nevents);
     }
     
+    public final void normalizeToTime(IDataSet ds, double units) {
+        
+        this.normalize(ds, Constants.getTimeWindow()*1E-9*nevents*units); // units=1 -> Hz, =1000 -> kHz, ...
+    }
+    
     public final void normalizeToTime(IDataSet ds) {
         
-        this.normalize(ds, Constants.getTimeWindow()*1E-9*nevents/1E-6); // MHz
+        this.normalizeToTime(ds, 1000); // kHz
     }
     
     public void normalizeToTime(DataGroup dg) {
       
-        this.normalize(dg, Constants.getTimeWindow()*1E-9*nevents/1E-6); // MHz
+        this.normalize(dg, Constants.getTimeWindow()*1E-9*nevents*1000); // kHz
     }
     
     public final void toDose(IDataSet ds) {

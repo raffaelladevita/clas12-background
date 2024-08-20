@@ -190,9 +190,10 @@ public class DCmodule extends Module {
 
         for (int ir = 0; ir < NREGIONS; ir++) {
             int region = ir + 1;
+            double dx = 2000+ir*1000;
             String name = "region" + region;
-            H2F hi_posZ_posYR = histo2D("hi-posZ-posR-" + name, "posZ [mm]", "posR [mm]",300, 0., 6000., 300, 0, 5000.);
-            H2F hi_posX_posY = histo2D("hi-posX-posY-" + name, "poX [mm]", "posY [deg]",300, -6000., 6000., 300, -3000, 3000.);
+            H2F hi_posZ_posYR = histo2D("hi-posZ-posR-" + name, "posZ [mm]", "posR [mm]",300, 0., 6000., 300, 0, Math.sqrt(2)*dx);
+            H2F hi_posX_posY = histo2D("hi-posX-posY-" + name, "poX [mm]", "posY [deg]",200, -dx , dx, 200, -dx, dx);
             dg.addDataSet(hi_posZ_posYR, ir);
             dg.addDataSet(hi_posX_posY, ir+3);
         }
@@ -262,7 +263,7 @@ public class DCmodule extends Module {
      
           group.getH1F("hi-bg-z-" + name+ "-" +name_pid).fill(t.getVertex().z());
           
-        }           
+          }
    
     }
     
