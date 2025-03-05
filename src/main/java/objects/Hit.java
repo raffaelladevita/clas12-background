@@ -15,7 +15,8 @@ public class Hit {
     private final int index;
     private final int sector;
     private final int layer;
-    private final int strip;
+    private final int component;
+    private final int order;
     private final DetectorType type;
     
     private int adc;
@@ -24,11 +25,12 @@ public class Hit {
 
     private True tru;
     
-    public Hit(int index, int sector, int layer, int component, DetectorType type) {
+    public Hit(int index, int sector, int layer, int component, int order, DetectorType type) {
         this.index = index;
         this.sector = sector;
         this.layer = layer;
-        this.strip = component;
+        this.component = component;
+        this.order = order;
         this.type = type;
     }
 
@@ -45,7 +47,11 @@ public class Hit {
     }
 
     public int getComponent() {
-        return strip;
+        return component;
+    }
+
+    public int getOrder() {
+        return order;
     }
 
     public DetectorType getType() {
@@ -104,7 +110,8 @@ public class Hit {
                 Hit hit = new Hit(row,
                                   adcBank.getByte("sector", row),
                                   adcBank.getByte("layer", row),
-                                  adcBank.getInt("component", row),
+                                  adcBank.getShort("component", row),
+                                  adcBank.getByte("order", row),
                                   type);
                 hit.setADC(adcBank.getInt("ADC", row));
                 hit.setTime(adcBank.getFloat("time", row));
@@ -118,7 +125,8 @@ public class Hit {
                 Hit hit = new Hit(row,
                                   tdcBank.getByte("sector", row),
                                   tdcBank.getByte("layer", row),
-                                  tdcBank.getInt("component", row),
+                                  tdcBank.getShort("component", row),
+                                  tdcBank.getByte("order", row),
                                   type);
                 hit.setTDC(tdcBank.getInt("TDC", row));
                 hits.add(hit);
@@ -132,7 +140,8 @@ public class Hit {
         Hit hit = new Hit(row,
                           bank.getByte("sector", row),
                           bank.getByte("layer", row),
-                          bank.getInt("component", row),
+                          bank.getShort("component", row),
+                          bank.getByte("order", row),
                           type);
         hit.setADC(bank.getInt("ADC", row));
         hit.setTime(bank.getFloat("time", row));
@@ -143,7 +152,8 @@ public class Hit {
         Hit hit = new Hit(row,
                           bank.getByte("sector", row),
                           bank.getByte("layer", row),
-                          bank.getInt("component", row),
+                          bank.getShort("component", row),
+                          bank.getByte("order", row),
                           type);
         hit.setTDC(bank.getInt("TDC", row));
         return hit;

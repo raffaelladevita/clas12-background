@@ -32,27 +32,8 @@ public class DCmodule extends Module {
     private static final double[] DZ = {3500, 5000, 6500};    
     private static final String[] PNAMES = {"all", "electron", "gamma", "neutron", "proton", "pion", "other"};
     
-    public DCmodule(int residualScale) {
+    public DCmodule() {
         super(DetectorType.DC);
-    }
-
-    public DataGroup dcHitVertices(int col) {
-        String[] names = new String[]{"SVT", "BMTC", "BMTZ"};
-        double[] EMAX = {1000, 5000, 5000};
-        double[] TMAX = {1200, 1200, 1200};
-        double[] RMAX = {1500, 3000, 3000};
-        DataGroup dg = new DataGroup(3, 3);
-        for (int i = 0; i < names.length; i++) {
-            String name = names[i];
-            H1F hi_energy = histo1D("hi_energy_" + name, name, name + " Hit Energy", "Counts", 100, 0, EMAX[i], col);
-            H1F hi_time = histo1D("hi_time_" + name, name, name + " Hit Time", "Counts", 10 + (int) TMAX[i], -10, TMAX[i], col);
-            H1F hi_resi = histo1D("hi_resi_" + name, name, name + " Hit Residual (um)", "Counts", 100, -RMAX[i], RMAX[i], col);
-
-            dg.addDataSet(hi_energy, 0 + i * 3);
-            dg.addDataSet(hi_time, 1 + i * 3);
-            dg.addDataSet(hi_resi, 2 + i * 3);
-        }
-        return dg;
     }
 
     /* occupacy layer vs wire for each sector - need to normalize wrt number of region (3) */

@@ -14,26 +14,25 @@ import org.jlab.groot.group.DataGroup;
  *
  * @author devita
  */
-public class FTCALmodule extends Module {
+public class CNDmodule extends Module {
     
-    private static final int NCRYSTAL = 332;
-    private static final int NCRYSTALX = 22;
-    private static final int NCRYSTALY = 22;
+    private static final int NPADDLE  = 48;
+    private static final int NLAYER   = 3;
     
-    private static final double THRESHOLD = 10; // MeV
-    private static final double WEIGHT = 1.5*1.5*20*8.28/1000; //kg
+    private static final double THRESHOLD = 0.1; // MeV FIXME
+    private static final double WEIGHT = 1.5*1.5*20*8.28/1000; //kg  FIXME
     
-    public FTCALmodule() {
-        super(DetectorType.FTCAL);
+    public CNDmodule() {
+        super(DetectorType.CND);
     }
-
+    
     public DataGroup occupancies() {
         DataGroup dg = new DataGroup(3,2);
-        H2F hi_occ_2D     = histo2D("hi_occ_2D", "Occupancy (%)", "X", "Y", NCRYSTALX+2 , 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
-        H2F hi_rate_2D    = histo2D("hi_rate_2D", "Rate (kHz)", "X", "Y", NCRYSTALX+2 , 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
-        H2F hi_dose_2D    = histo2D("hi_dose_2D", "Dose (rad/h)", "X", "Y", NCRYSTALX+2 , 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
-        H2F hi_edep_2D    = histo2D("hi_edep_2D", "Energy deposition rate (MeV/us)", "X", "Y", NCRYSTALX+2, 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
-        H1F hi_occ_1D     = histo1D("hi_occ_1D",  " ", "ID", "Occupancy (%)", NCRYSTALX*NCRYSTALY, 0, NCRYSTALX*NCRYSTALY, 1);           
+        H2F hi_occ_2D     = histo2D("hi_occ_2D", "Occupancy (%)", "X", "Y", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
+        H2F hi_rate_2D    = histo2D("hi_rate_2D", "Rate (kHz)", "X", "Y", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
+        H2F hi_dose_2D    = histo2D("hi_dose_2D", "Dose (rad/h)", "X", "Y", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
+        H2F hi_edep_2D    = histo2D("hi_edep_2D", "Energy deposition rate (MeV/us)", "X", "Y", NPADDLE+2, 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
+        H1F hi_occ_1D     = histo1D("hi_occ_1D",  " ", "ID", "Occupancy (%)", NPADDLE*NLAYER, 0, NPADDLE*NLAYER, 1);           
         H1F hi_edep_1D    = histo1D("hi_edep_1D",  " ", "Energy (MeV)", "Rate kHz)", 100, 0, 500, 4); 
         H1F hi_time_1D    = histo1D("hi_time_1D",  " ", "Time (ns)", "Rate kHz)", 100, 0, Constants.getTimeWindow()*1.2, 4);           
         dg.addDataSet(hi_occ_2D,    0);
@@ -52,15 +51,16 @@ public class FTCALmodule extends Module {
     
     @Override
     public void fillHistos(Event event) {
-        if (event.getHits(DetectorType.FTCAL) != null) {
-            this.fillOccupancies(this.getHistos().get("Occupancy"), event.getHits(DetectorType.FTCAL));
+        if (event.getHits(DetectorType.CND) != null) {
+            this.fillOccupancies(this.getHistos().get("Occupancy"), event.getHits(DetectorType.CND));
         }
     }
     
     public void fillOccupancies(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
-            int idy = hit.getComponent()/NCRYSTALY+1;
-            int idx = hit.getComponent()%NCRYSTALY+1;
+            if(hit.getOrder()>1) continue;  // use ADCs only
+            int idy = hit.getLayer();
+            int idx = hit.getSector()*2+hit.getOrder();
             double edep = hit.getTrue().getEdep();
             if(edep>THRESHOLD) {
                 group.getH2F("hi_occ_2D").fill(idx, idy);

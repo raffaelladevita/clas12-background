@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
+import modules.CNDmodule;
 import modules.DCmodule;
 import modules.FTCALmodule;
 import org.jlab.detector.base.DetectorType;
@@ -63,8 +64,9 @@ public class Background {
         GStyle.setPalette("kRainBow");
 
         Constants.setTimeWindow(window);  
-        this.addModule(active, new DCmodule(1));
-        this.addModule(active, new FTCALmodule(1));
+        this.addModule(active, new DCmodule());
+        this.addModule(active, new FTCALmodule());
+        this.addModule(active, new CNDmodule());
     }
 
     private void addModule(String active, Module module) {
