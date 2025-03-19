@@ -35,9 +35,9 @@ public class Module {
     private Map<String,DataGroup> moduleGroup  = new LinkedHashMap<>();
     private EmbeddedCanvasTabbed  moduleCanvas = null;
     private List<String> canvasNames = new ArrayList<>();
-            
     private int nevents;
     
+    public static final String[] PNAMES = {"all", "electron", "gamma", "neutron", "proton", "pion", "other"};
         
     public Module(DetectorType type){                               
         this.moduleType = type;
@@ -461,7 +461,19 @@ public class Module {
     }
 
 
-
-
+    public void setLegend(String text, int x, int y) {
+        DataGroup dg = this.getHistos().get(text);
+        int nx = dg.getColumns();
+        int ny = dg.getRows();
+        for (int i = 0; i < nx * ny; i++) {
+            EmbeddedPad pad = this.getCanvas(text).getPad(i);
+            if (pad.getDatasetPlotters().get(0).getDataSet() instanceof H1F) {
+                if(((H1F) pad.getDatasetPlotters().get(0).getDataSet()).getTitle().trim().isEmpty())
+                    continue;
+                pad.setLegend(true);
+                pad.setLegendPosition(x, y);
+            }
+        }
+    }
 
 } 

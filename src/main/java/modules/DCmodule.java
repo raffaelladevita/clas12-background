@@ -3,8 +3,8 @@ package modules;
 import analysis.Constants;
 import java.util.List;
 import objects.Hit;
-import java.text.DecimalFormat;
 import analysis.Module;
+import java.util.ArrayList;
 import objects.Event;
 import objects.True;
 import org.jlab.detector.base.DetectorType;
@@ -30,7 +30,6 @@ public class DCmodule extends Module {
     private static final double[] RWINDOWS = {250, 500, 500};
     private static final double[] DR = {2500, 4000, 5500};
     private static final double[] DZ = {3500, 5000, 6500};    
-    private static final String[] PNAMES = {"all", "electron", "gamma", "neutron", "proton", "pion", "other"};
     
     public DCmodule() {
         super(DetectorType.DC);
@@ -76,7 +75,7 @@ public class DCmodule extends Module {
             for (int ir = 0; ir < NREGIONS; ir++) {
                 int region = ir + 1;
                 H2F hi_bg_origin_rz = histo2D("hi_bg_origin_rz_region" + region, "Vz(mm)", "r(mm) ", 200, -500., DZ[ir], 200, 0., DR[ir]);
-                H2F hi_bg_origin_xy = histo2D("hi_bg_origin_xy_region" + region, "Vx(mm)", "Vy(mm) ", 200, -1000., 1000., 200, -1000., 1000.);
+                H2F hi_bg_origin_xy = histo2D("hi_bg_origin_xy_region" + region, "Vx(mm)", "Vy(mm) ", 200, -DR[ir], DR[ir], 200, -DR[ir], DR[ir]);
                 dg[i].addDataSet(hi_bg_origin_xy, 0 + ir);
                 dg[i].addDataSet(hi_bg_origin_rz, 3 + ir);
 
@@ -143,8 +142,13 @@ public class DCmodule extends Module {
 
     @Override
     public void fillHistos(Event event) {
-        List<Hit> hits = event.getHits(DetectorType.DC);
-        if (hits!=null) {
+        List<Hit> allhits = event.getHits(DetectorType.DC);
+        if (allhits!=null) {
+            List<Hit> hits = new ArrayList<>();
+            for(Hit h : allhits) {
+                if(h.getTrue().getEdep()>50E-6)
+                    hits.add(h);
+            }
             this.fillOccupancies(this.getHistos().get("Sector Occupancy"), hits);
             this.fillOccupancy_region(this.getHistos().get("Region Occupancy"), hits);
             this.fillOrigin(this.getHistos().get("Origin of Bg"), hits, false);
@@ -157,6 +161,7 @@ public class DCmodule extends Module {
 
     public void fillOccupancies(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
+//            System.out.println(hit.getTrue().getEdep() + " " + hit.getTrue().getTime()+ " " + hit.getTDC());
             group.getH2F("hi_occ_sector" + hit.getSector()).fill(hit.getComponent(), hit.getLayer(),RWINDOWS[(hit.getLayer()-1)/12]/Constants.getTimeWindow());
         }
     }
@@ -251,19 +256,6 @@ public class DCmodule extends Module {
             int region = ir + 1;
             F1D f = fitPol0(dg.getH1F("hi_occ_region" + region));
             dg.addDataSet(f, 0);
-        }
-    }
-
-    public void setLegend(String text, int x, int y) {
-        DataGroup dg = this.getHistos().get(text);
-        int nx = dg.getColumns();
-        int ny = dg.getRows();
-        for (int i = 0; i < nx * ny; i++) {
-            EmbeddedPad pad = this.getCanvas(text).getPad(i);
-            if (pad.getDatasetPlotters().get(0).getDataSet() instanceof H1F) {
-                this.getCanvas().getCanvas(text).getPad(i).setLegend(true);
-                this.getCanvas().getCanvas(text).getPad(i).setLegendPosition(x, y);
-            }
         }
     }
 
