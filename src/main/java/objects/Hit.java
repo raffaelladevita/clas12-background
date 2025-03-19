@@ -102,8 +102,10 @@ public class Hit {
     }
     
     public static List<Hit> readHits(DataEvent event, DetectorType type) {
-        DataBank adcBank = event.getBank(type.getName()+"::adc");
-        DataBank tdcBank = event.getBank(type.getName()+"::tdc");
+        String bank = type.getName();
+        if(type==DetectorType.TARGET) bank = "FLUX";
+        DataBank adcBank = event.getBank(bank+"::adc");
+        DataBank tdcBank = event.getBank(bank+"::tdc");
         if(adcBank!=null && adcBank.rows()>0) {
             List<Hit> hits = new ArrayList<>();
             for(int row=0; row<adcBank.rows(); row++) {

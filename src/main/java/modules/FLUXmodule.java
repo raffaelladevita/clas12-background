@@ -14,7 +14,7 @@ import org.jlab.groot.group.DataGroup;
  *
  * @author devita
  */
-public class CNDmodule extends Module {
+public class FLUXmodule extends Module {
     
     private static final int NPADDLE  = 48;
     private static final int NLAYER   = 3;
@@ -24,8 +24,8 @@ public class CNDmodule extends Module {
                                             0.5*(4.000+4.387)*3*70.000*1.05/2/1000,
                                             0.5*(4.408+4.803)*3*73.428*1.05/2/1000};
 
-    public CNDmodule() {
-        super(DetectorType.CND);
+    public FLUXmodule() {
+        super(DetectorType.TARGET);
     }
     
     public DataGroup occupancies() {
@@ -61,8 +61,8 @@ public class CNDmodule extends Module {
     
     @Override
     public void fillHistos(Event event) {
-        if (event.getHits(DetectorType.CND) != null) {
-            this.fillOccupancies(this.getHistos().get("Occupancy"), event.getHits(DetectorType.CND));
+        if (event.getHits(DetectorType.TARGET) != null) {
+            this.fillOccupancies(this.getHistos().get("Occupancy"), event.getHits(DetectorType.TARGET));
         }
     }
     
