@@ -27,7 +27,7 @@ public class DCmodule extends Module {
     private static final int NLAYERS = 36;
     private static final int NWIRES = 112;
 
-    private static final double[] RWINDOWS = {250, 500, 500};
+    private static final double[] RWINDOWS = {500, 1400, 1200};
     private static final double[] DR = {2500, 4000, 5500};
     private static final double[] DZ = {3500, 5000, 6500};    
     

@@ -17,8 +17,8 @@ import org.jlab.groot.group.DataGroup;
 public class FTCALmodule extends Module {
     
     private static final int NCRYSTAL = 332;
-    private static final int NCRYSTALX = 88;
-    private static final int NCRYSTALY = 88;
+    private static final int NCRYSTALX = 22;
+    private static final int NCRYSTALY = 22;
     
     private static final double THRESHOLD = 15; // MeV
     private static final double WEIGHT = 1.5*1.5*20*8.28/1000; //kg

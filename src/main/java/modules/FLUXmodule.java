@@ -6,8 +6,10 @@ import objects.Hit;
 import analysis.Module;
 import objects.Event;
 import org.jlab.detector.base.DetectorType;
+import org.jlab.geom.prim.Vector3D;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
+import org.jlab.groot.graphics.EmbeddedPad;
 import org.jlab.groot.group.DataGroup;
 
 /**
@@ -16,103 +18,85 @@ import org.jlab.groot.group.DataGroup;
  */
 public class FLUXmodule extends Module {
     
-    private static final int NPADDLE  = 48;
-    private static final int NLAYER   = 3;
+    private static final double DTHETA = 0.5;
+    private static final double[] R = {50, 700}; // cm
     
-    private static final double THRESHOLD = 1; // MeV FIXME
-    private static final double[] WEIGHT = {0.5*(3.592+3.987)*3*66.572*1.05/2/1000,
-                                            0.5*(4.000+4.387)*3*70.000*1.05/2/1000,
-                                            0.5*(4.408+4.803)*3*73.428*1.05/2/1000};
-
     public FLUXmodule() {
         super(DetectorType.TARGET);
     }
     
-    public DataGroup occupancies() {
-        DataGroup dg = new DataGroup(3,3);
-        H2F hi_occ_2D     = histo2D("hi_occ_2D", "Occupancy (%)", "X", "Y", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
-        H2F hi_rate_2D    = histo2D("hi_rate_2D", "Rate (kHz)", "X", "Y", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
-        H2F hi_dose_2D    = histo2D("hi_dose_2D", "Dose (rad/h)", "X", "Y", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
-        H2F hi_edep_2D    = histo2D("hi_edep_2D", "Energy deposition rate (MeV/us)", "X", "Y", NPADDLE+2, 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
-        H1F hi_edep_1D    = histo1D("hi_edep_1D",  " ", "Energy (MeV)", "Rate kHz)", 100, 0, 500, 4); 
-        H1F hi_time_1D    = histo1D("hi_time_1D",  " ", "Time (ns)", "Rate kHz)", 100, 0, Constants.getTimeWindow()*1.2, 4);           
-        H1F hi_zeta_1D    = histo1D("hi_zeta_1D",  " ", "Z (cm)", "Rate kHz)", 100, -40, 40, 4);           
-        H2F hi_bg_2D      = histo2D("hi_bg_2D", " ", "vz (cm)", "vr (cm)", 100, -100, 100, 100, 0, 100);           
-        for (int ip=0; ip<PNAMES.length; ip++) {
-            H1F hi_bg = histo1D("hi_bg_1D_" + PNAMES[ip], PNAMES[ip], "vz (cm)", "Rate [MHz] ", 200, -100, 100, 0);   
-            this.setHistoAttr(hi_bg, ip<5 ? ip+1 : ip+3);
-            dg.addDataSet(hi_bg, 6);
+    public DataGroup fluxes() {
+        DataGroup dg = new DataGroup(3,2);
+        
+        for(int il=0; il<2; il++) {
+            for (int ip=0; ip<PNAMES.length; ip++) {
+                H1F hi_all = histo1D("hi_allflux_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/cm2] ", (int) (100/DTHETA), 0, 100, 0); 
+                this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
+                H1F hi_fwd = histo1D("hi_fwdflux_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/cm2] ", (int) (100/DTHETA), 0, 100, 0); 
+                this.setHistoAttr(hi_fwd, ip<5 ? ip+1 : ip+3);
+                dg.addDataSet(hi_all, 0 + il*3);
+                dg.addDataSet(hi_fwd, 1 + il*3);
+            }
+            H2F hi_flux = histo2D("hi_allflux_2D_"+(il+1), "Flux (kHz/cm2)", "x (cm)", "y (cm) ", (int) R[il]*2, -R[il], R[il], (int) R[il]*2, -R[il], R[il]); 
+            dg.addDataSet(hi_flux, 2 + il*3);
         }
-        dg.addDataSet(hi_occ_2D,    0);
-        dg.addDataSet(hi_rate_2D,   1);
-        dg.addDataSet(hi_edep_2D,   2);
-        dg.addDataSet(hi_edep_1D,   3);
-        dg.addDataSet(hi_time_1D,   4);
-        dg.addDataSet(hi_zeta_1D,   5);
-        dg.addDataSet(hi_bg_2D,     7);
-        dg.addDataSet(hi_dose_2D,   8);
         return dg;
     }
   
     @Override
     public void createHistos() {
-        this.getHistos().put("Occupancy", this.occupancies());
+        this.getHistos().put("Fluxes", this.fluxes());
     }
     
     @Override
     public void fillHistos(Event event) {
         if (event.getHits(DetectorType.TARGET) != null) {
-            this.fillOccupancies(this.getHistos().get("Occupancy"), event.getHits(DetectorType.TARGET));
+            this.fillFluxes(this.getHistos().get("Fluxes"), event.getHits(DetectorType.TARGET));
         }
     }
     
-    public void fillOccupancies(DataGroup group, List<Hit> hits) {
+    public void fillFluxes(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
-            if(hit.getOrder()>1) continue;  // use ADCs only
-            int idy = hit.getLayer();
-            int idx = hit.getSector()*2+hit.getOrder();
-            double edep = hit.getTrue().getEdep();
-            if(edep>THRESHOLD) {
-                group.getH2F("hi_occ_2D").fill(idx, idy);
-                group.getH2F("hi_rate_2D").fill(idx, idy);
-//                group.getH1F("hi_occ_1D").fill(hit.getComponent());
-                group.getH1F("hi_time_1D").fill(hit.getTrue().getTime());
-                group.getH1F("hi_zeta_1D").fill(hit.getTrue().getPosition().z()/10);
+            Vector3D proj = hit.getTrue().getPosition().toVector3D().asUnit();
+            double theta = hit.getTrue().getPosition().toVector3D().theta();
+            double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
+            int il = hit.getComponent()/10;
+            boolean fwd = hit.getTrue().getPosition().toVector3D().dot(hit.getTrue().getMomentum())>0;
+            group.getH2F("hi_allflux_2D_" + (il+1)).fill(proj.x()*R[il],proj.y()*R[il]);
+            group.getH1F("hi_allflux_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega/R[il]/R[il]);
+            if(fwd)
+                group.getH1F("hi_fwdflux_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega/R[il]/R[il]);                
+            if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) {
+                group.getH1F("hi_allflux_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega/R[il]/R[il]);
+                if(fwd)
+                    group.getH1F("hi_fwdflux_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega/R[il]/R[il]);
             }
-            group.getH1F("hi_edep_1D").fill(edep);
-            group.getH2F("hi_edep_2D").fill(idx, idy, edep);
-            group.getH2F("hi_dose_2D").fill(idx, idy, edep/WEIGHT[idy-1]);
-            group.getH2F("hi_bg_2D").fill(hit.getTrue().getVertex().z()/10, Math.sqrt(Math.pow(hit.getTrue().getVertex().x(),2)+
-                                                                                      Math.pow(hit.getTrue().getVertex().y(), 2))/10);
-            group.getH1F("hi_bg_1D_all").fill(hit.getTrue().getVertex().z()/10);
-            if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) 
-                group.getH1F("hi_bg_1D_"+this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(hit.getTrue().getVertex().z()/10);
         }
     }
     
     @Override
     public void analyzeHistos() {
-        this.normalizeToEventsX100(this.getHistos().get("Occupancy").getH2F("hi_occ_2D"));
-//        this.normalizeToEventsX100(this.getHistos().get("Occupancy").getH1F("hi_occ_1D"));
-        this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_rate_2D"));
-        this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_edep_2D"), 1E6);
-        this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_edep_1D"));
-        this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_time_1D"));
-        this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_zeta_1D"));
-        this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_bg_2D"));
-        for (String pn : PNAMES) {
-            this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_bg_1D_" + pn));
+        for(int il=0; il<2; il++) {
+            this.normalizeToTime(this.getHistos().get("Fluxes").getH2F("hi_allflux_2D_" + (il+1)), 1);
+            for (String pn : PNAMES) {
+                this.normalizeToTime(this.getHistos().get("Fluxes").getH1F("hi_allflux_1D_" + (il+1) + "_" + pn), 1);
+                this.normalizeToTime(this.getHistos().get("Fluxes").getH1F("hi_fwdflux_1D_" + (il+1) + "_" + pn), 1);
+                this.getHistos().get("Fluxes").getH1F("hi_allflux_1D_" + (il+1) + "_" + pn).setOptStat("1000001");
+                this.getHistos().get("Fluxes").getH1F("hi_fwdflux_1D_" + (il+1) + "_" + pn).setOptStat("1000001");
+            }
         }
-        this.toDose(this.getHistos().get("Occupancy").getH2F("hi_dose_2D"));
     }
     
     @Override
     public void setPlottingOptions(String key) {
-        if(key.equals("Occupancy")) {
-//            this.getCanvas(key).getCanvasPads().get(1).getAxisZ().setLog(true);
-//            this.getCanvas(key).getCanvasPads().get(2).getAxisZ().setLog(true);
-            this.getCanvas(key).getCanvasPads().get(3).getAxisY().setLog(true);
-                this.setLegend("Occupancy", 250, 140);
+        for(EmbeddedPad pad : this.getCanvas(key).getCanvasPads()) {
+            if(pad.getDatasetPlotters().get(0).getDataSet() instanceof H1F) {
+                pad.getAxisY().setLog(true);
+                pad.setOptStat("100001");
+            }
+            else {
+                pad.getAxisZ().setLog(true);
+            }
         }
     }
    

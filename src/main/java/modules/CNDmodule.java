@@ -109,10 +109,9 @@ public class CNDmodule extends Module {
     @Override
     public void setPlottingOptions(String key) {
         if(key.equals("Occupancy")) {
-//            this.getCanvas(key).getCanvasPads().get(1).getAxisZ().setLog(true);
-//            this.getCanvas(key).getCanvasPads().get(2).getAxisZ().setLog(true);
             this.getCanvas(key).getCanvasPads().get(3).getAxisY().setLog(true);
-                this.setLegend("Occupancy", 250, 140);
+            this.getCanvas(key).getCanvasPads().get(7).getAxisZ().setLog(true);
+            this.setLegend("Occupancy", 30, 140);
         }
     }
    

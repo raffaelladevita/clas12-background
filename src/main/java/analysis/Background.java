@@ -62,7 +62,7 @@ public class Background {
         GStyle.getAxisAttributesZ().setTitleFontName("Arial");
         GStyle.setGraphicsFrameLineWidth(2);
         GStyle.getH1FAttributes().setLineWidth(1);
-        GStyle.setPalette("kRainBow");
+        GStyle.setPalette("kDefault");
 
         Constants.setTimeWindow(window);  
         this.addModule(active, new DCmodule());
