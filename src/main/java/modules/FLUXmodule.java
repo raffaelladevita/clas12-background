@@ -30,9 +30,9 @@ public class FLUXmodule extends Module {
         
         for(int il=0; il<2; il++) {
             for (int ip=0; ip<PNAMES.length; ip++) {
-                H1F hi_all = histo1D("hi_allflux_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/cm2] ", (int) (100/DTHETA), 0, 100, 0); 
+                H1F hi_all = histo1D("hi_allflux_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux at R=" + R[il] + "cm [Hz/cm2] ", (int) (100/DTHETA), 0, 100, 0); 
                 this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
-                H1F hi_fwd = histo1D("hi_fwdflux_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/cm2] ", (int) (100/DTHETA), 0, 100, 0); 
+                H1F hi_fwd = histo1D("hi_fwdflux_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux at R=" + R[il] + "cm [Hz/cm2] ", (int) (100/DTHETA), 0, 100, 0); 
                 this.setHistoAttr(hi_fwd, ip<5 ? ip+1 : ip+3);
                 dg.addDataSet(hi_all, 0 + il*3);
                 dg.addDataSet(hi_fwd, 1 + il*3);
@@ -59,6 +59,7 @@ public class FLUXmodule extends Module {
         for (Hit hit : hits) {
             Vector3D proj = hit.getTrue().getPosition().toVector3D().asUnit();
             double theta = hit.getTrue().getPosition().toVector3D().theta();
+            if(theta>Math.toRadians(70)) continue;
             double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
             int il = hit.getComponent()/10;
             boolean fwd = hit.getTrue().getPosition().toVector3D().dot(hit.getTrue().getMomentum())>0;
