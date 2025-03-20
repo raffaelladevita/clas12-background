@@ -72,7 +72,9 @@ public class CNDmodule extends Module {
             int idy = hit.getLayer();
             int idx = hit.getSector()*2+hit.getOrder();
             double edep = hit.getTrue().getEdep();
-            if(edep>THRESHOLD) {
+            if(edep==0)
+                continue;
+            else if(edep>THRESHOLD) {
                 group.getH2F("hi_occ_2D").fill(idx, idy);
                 group.getH2F("hi_rate_2D").fill(idx, idy);
 //                group.getH1F("hi_occ_1D").fill(hit.getComponent());

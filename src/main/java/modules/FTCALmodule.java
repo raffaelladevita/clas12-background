@@ -62,7 +62,9 @@ public class FTCALmodule extends Module {
             int idy = hit.getComponent()/NCRYSTALY+1;
             int idx = hit.getComponent()%NCRYSTALY+1;
             double edep = hit.getTrue().getEdep();
-            if(edep>THRESHOLD) {
+            if(edep==0)
+                continue;
+            else if(edep>THRESHOLD) {
                 group.getH2F("hi_occ_2D").fill(idx, idy);
                 group.getH2F("hi_rate_2D").fill(idx, idy);
 //                group.getH1F("hi_occ_1D").fill(hit.getComponent());
