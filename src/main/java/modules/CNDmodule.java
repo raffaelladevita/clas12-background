@@ -20,9 +20,9 @@ public class CNDmodule extends Module {
     private static final int NLAYER   = 3;
     
     private static final double THRESHOLD = 3; // MeV 
-    private static final double[] WEIGHT = {0.5*(3.592+3.987)*3*66.572*1.05/2/1000,
-                                            0.5*(4.000+4.387)*3*70.000*1.05/2/1000,
-                                            0.5*(4.408+4.803)*3*73.428*1.05/2/1000};
+    private static final double[] WEIGHT = {0.5*(3.592+3.987)*3*66.572*1.05/1000,
+                                            0.5*(4.000+4.387)*3*70.000*1.05/1000,
+                                            0.5*(4.408+4.803)*3*73.428*1.05/1000};
     private static final double FADC_SAMPLING = 4; // ns
     private static final double FADC_LSB      = 1000.0/4096; //mv
     private static final double FADC_OHMS     = 50; //OHMS
@@ -88,7 +88,7 @@ public class CNDmodule extends Module {
             }
             group.getH1F("hi_edep_1D").fill(edep);
 //            group.getH2F("hi_edep_2D").fill(idx, idy, edep);
-            group.getH2F("hi_chrg_2D").fill(idx, idy, ((double) hit.getADC())*FADC_SAMPLING*FADC_LSB/FADC_OHMS); // *4ns*0.25V/50Ohm => pC
+            group.getH2F("hi_chrg_2D").fill(idx, idy, ((double) hit.getADC())*2*FADC_SAMPLING*FADC_LSB/FADC_OHMS); // *4ns*0.25V/50Ohm => pC
             group.getH2F("hi_dose_2D").fill(idx, idy, edep/WEIGHT[idy-1]);
             group.getH2F("hi_bg_2D").fill(hit.getTrue().getVertex().z()/10, Math.sqrt(Math.pow(hit.getTrue().getVertex().x(),2)+
                                                                                       Math.pow(hit.getTrue().getVertex().y(), 2))/10);

@@ -30,10 +30,11 @@ public class FLUXmodule extends Module {
         
         for(int il=0; il<2; il++) {
             double range = 100-55*il;
+            String title = il==0 ? "Central" : "Forward";
             for (int ip=0; ip<PNAMES.length; ip++) {
-                H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
+                H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], title, "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
                 this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
-                H1F hi_bwd = histo1D("hi_bwd_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
+                H1F hi_bwd = histo1D("hi_bwd_1D_"+(il+1) + "_" + PNAMES[ip], title, "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
                 this.setHistoAttr(hi_bwd, ip<5 ? ip+1 : ip+3);
                 dg.addDataSet(hi_all, 0 + il*2);
                 dg.addDataSet(hi_bwd, 1 + il*2);
