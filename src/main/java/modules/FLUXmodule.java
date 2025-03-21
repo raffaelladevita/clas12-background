@@ -33,10 +33,10 @@ public class FLUXmodule extends Module {
             for (int ip=0; ip<PNAMES.length; ip++) {
                 H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
                 this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
-                H1F hi_fwd = histo1D("hi_fwd_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
-                this.setHistoAttr(hi_fwd, ip<5 ? ip+1 : ip+3);
+                H1F hi_bwd = histo1D("hi_bwd_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
+                this.setHistoAttr(hi_bwd, ip<5 ? ip+1 : ip+3);
                 dg.addDataSet(hi_all, 0 + il*2);
-                dg.addDataSet(hi_fwd, 1 + il*2);
+                dg.addDataSet(hi_bwd, 1 + il*2);
             }
         }
         return dg;
@@ -75,14 +75,14 @@ public class FLUXmodule extends Module {
             double theta = hit.getTrue().getPosition().toVector3D().theta();
             double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
             int il = hit.getComponent()/10;
-            boolean fwd = hit.getTrue().getPosition().toVector3D().dot(hit.getTrue().getMomentum())>0;
+            boolean bwd = hit.getTrue().getPosition().toVector3D().dot(hit.getTrue().getMomentum())<0;
             group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);
-            if(fwd)
-                group.getH1F("hi_fwd_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);                
+            if(bwd)
+                group.getH1F("hi_bwd_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);                
             if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) {
                 group.getH1F("hi_all_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega);
-                if(fwd)
-                    group.getH1F("hi_fwd_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega);
+                if(bwd)
+                    group.getH1F("hi_bwd_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega);
             }
         }
     }
@@ -113,7 +113,7 @@ public class FLUXmodule extends Module {
             this.normalizeToTime(this.getHistos().get("Fluxes").getH2F("hi_neu_2D_" + (il+1)), 1);
             for (String pn : PNAMES) {
                 this.normalizeToTime(this.getHistos().get("Rates").getH1F("hi_all_1D_" + (il+1) + "_" + pn), 1);
-                this.normalizeToTime(this.getHistos().get("Rates").getH1F("hi_fwd_1D_" + (il+1) + "_" + pn), 1);
+                this.normalizeToTime(this.getHistos().get("Rates").getH1F("hi_bwd_1D_" + (il+1) + "_" + pn), 1);
             }
         }
     }
