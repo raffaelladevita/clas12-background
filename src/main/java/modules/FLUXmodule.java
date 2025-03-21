@@ -19,37 +19,53 @@ import org.jlab.groot.group.DataGroup;
 public class FLUXmodule extends Module {
     
     private static final double DTHETA = 0.5;
-    private static final double[] R = {50, 700}; // cm
+    private static final double[] R = {30, 60, 600}; // cm
+    private static final double[] tmin = {30,  0,  0}; // cm
+    private static final double[] tmax = {90, 30, 40}; // cm
+    private static final double THRESHOLD = 0;
     
     public FLUXmodule() {
         super(DetectorType.TARGET);
     }
     
     public DataGroup rates() {
-        DataGroup dg = new DataGroup(2,2);
+        DataGroup dg = new DataGroup(3,2);
         
-        for(int il=0; il<2; il++) {
-            double range = 100-55*il;
-            String title = il==0 ? "Central" : "Forward";
+        String[] title = {"Central", "Calorimeter", "Forward carriage"};
+        for(int il=0; il<3; il++) {
             for (int ip=0; ip<PNAMES.length; ip++) {
-                H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], title, "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
+                H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "#theta (deg)", "Flux [Hz/d#Omega] ", (int) ((tmax[il]-tmin[il])/DTHETA), tmin[il], tmax[il], 0); 
                 this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
-                H1F hi_bwd = histo1D("hi_bwd_1D_"+(il+1) + "_" + PNAMES[ip], title, "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
+                H1F hi_bwd = histo1D("hi_bwd_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "#theta (deg)", "Flux [Hz/d#Omega] ", (int) ((tmax[il]-tmin[il])/DTHETA), tmin[il], tmax[il], 0); 
                 this.setHistoAttr(hi_bwd, ip<5 ? ip+1 : ip+3);
-                dg.addDataSet(hi_all, 0 + il*2);
-                dg.addDataSet(hi_bwd, 1 + il*2);
+                dg.addDataSet(hi_all, il + 0);
+                dg.addDataSet(hi_bwd, il + 3);
             }
         }
         return dg;
     }
   
     public DataGroup fluxes() {
-        DataGroup dg = new DataGroup(3,2);
+        DataGroup dg = new DataGroup(3,3);
         
-        for(int il=0; il<2; il++) {
-            H2F hi_all = histo2D("hi_all_2D_"+(il+1), "Total Flux (Hz/cm2)", "x (cm)", "y (cm) ", (int) R[il]*2, -R[il], R[il], (int) R[il]*2, -R[il], R[il]); 
-            H2F hi_crg = histo2D("hi_crg_2D_"+(il+1), "Charged Flux (Hz/cm2)", "x (cm)", "y (cm) ", (int) R[il]*2, -R[il], R[il], (int) R[il]*2, -R[il], R[il]); 
-            H2F hi_neu = histo2D("hi_neu_2D_"+(il+1), "Neutron Flux (Hz/cm2)", "x (cm)", "y (cm) ", (int) R[il]*2, -R[il], R[il], (int) R[il]*2, -R[il], R[il]); 
+        for(int il=0; il<3; il++) {
+            String xt = "x (cm)";
+            String yt = "y (cm)";
+            double xmin = -R[il]*(0.4+0.2*il);
+            double xmax =  R[il]*(0.4+0.2*il);
+            double ymin = -R[il]*(0.4+0.2*il);
+            double ymax =  R[il]*(0.4+0.2*il);
+            if(il==0) {
+                yt = "R#phi (cm)";
+                xt = "z (cm)";
+                xmin = 0;
+                xmax = R[il]*2;
+                ymin = -R[il]*3.5;
+                ymax =  R[il]*3.5;
+            }
+            H2F hi_all = histo2D("hi_all_2D_"+(il+1), "Total Flux (Hz/cm2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax); 
+            H2F hi_crg = histo2D("hi_crg_2D_"+(il+1), "Charged Flux (Hz/cm2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax); 
+            H2F hi_neu = histo2D("hi_neu_2D_"+(il+1), "Neutron Flux (Hz/cm2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax);  
             dg.addDataSet(hi_all, 0 + il*3);
             dg.addDataSet(hi_crg, 1 + il*3);
             dg.addDataSet(hi_neu, 2 + il*3);
@@ -73,9 +89,10 @@ public class FLUXmodule extends Module {
     
     public void fillRates(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
+            if(hit.getTrue().getKinEnergy()<THRESHOLD) continue;
             double theta = hit.getTrue().getPosition().toVector3D().theta();
             double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
-            int il = hit.getComponent()/10;
+            int il = hit.getTrue().getPosition().z()<500 ? 0 : 1+hit.getComponent()/10;
             boolean bwd = hit.getTrue().getPosition().toVector3D().dot(hit.getTrue().getMomentum())<0;
             group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);
             if(bwd)
@@ -91,24 +108,28 @@ public class FLUXmodule extends Module {
     
     public void fillFluxes(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
+            if(hit.getTrue().getKinEnergy()<THRESHOLD) continue;
             Vector3D proj = hit.getTrue().getPosition().toVector3D().asUnit();
             double theta = hit.getTrue().getPosition().toVector3D().theta();
             if(theta>Math.toRadians(70)) continue;
             int pid = Math.abs(hit.getTrue().getPid());
-            int il = hit.getComponent()/10;
-            group.getH2F("hi_all_2D_" + (il+1)).fill(proj.x()*R[il],proj.y()*R[il]);
+            int il = hit.getTrue().getPosition().z()<500 ? 0 : 1+hit.getComponent()/10;
+            double x = il==0 ? hit.getTrue().getPosition().z() : proj.x()*R[il];
+            double y = il==0 ? proj.phi()*R[il] : proj.y()*R[il];
+            group.getH2F("hi_all_2D_" + (il+1)).fill(x, y);
             if(pid==11 || pid==2212 || pid==211) {
-                group.getH2F("hi_crg_2D_" + (il+1)).fill(proj.x()*R[il],proj.y()*R[il]);
+                group.getH2F("hi_crg_2D_" + (il+1)).fill(x, y);
             }
             else if(pid==2112) {
-                group.getH2F("hi_neu_2D_" + (il+1)).fill(proj.x()*R[il],proj.y()*R[il]);
+                group.getH2F("hi_neu_2D_" + (il+1)).fill(x, y);
             }
         }
     }
     
     @Override
     public void analyzeHistos() {
-        for(int il=0; il<2; il++) {
+        System.out.println("aaa");
+        for(int il=0; il<3; il++) {
             this.normalizeToTime(this.getHistos().get("Fluxes").getH2F("hi_all_2D_" + (il+1)), 1);
             this.normalizeToTime(this.getHistos().get("Fluxes").getH2F("hi_crg_2D_" + (il+1)), 1);
             this.normalizeToTime(this.getHistos().get("Fluxes").getH2F("hi_neu_2D_" + (il+1)), 1);
@@ -123,12 +144,15 @@ public class FLUXmodule extends Module {
     public void setPlottingOptions(String key) {
         for(EmbeddedPad pad : this.getCanvas(key).getCanvasPads()) {
             if(pad.getDatasetPlotters().get(0).getDataSet() instanceof H1F) {
+                H1F h = (H1F) pad.getDatasetPlotters().get(0).getDataSet();
                 pad.getAxisY().setLog(true);
+                pad.getAxisY().setRange(pad.getAxisY().getMin(), 10*h.getMax());
                 pad.setOptStat("100001");
             }
-            else {
-                pad.getAxisZ().setLog(true);
-            }
+//           
+
+
+
         }
     }
    

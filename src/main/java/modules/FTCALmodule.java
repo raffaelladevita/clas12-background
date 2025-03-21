@@ -34,7 +34,7 @@ public class FTCALmodule extends Module {
         H2F hi_dose_2D    = histo2D("hi_dose_2D", "Dose (rad/h)", "X", "Y", NCRYSTALX+2 , 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
         H2F hi_edep_2D    = histo2D("hi_edep_2D", "Energy deposition rate (MeV/us)", "X", "Y", NCRYSTALX+2, 0, NCRYSTALX+1, NCRYSTALY+2 , 0, NCRYSTALY+1);           
         H1F hi_occ_1D     = histo1D("hi_occ_1D",  " ", "ID", "Occupancy (%)", NCRYSTALX*NCRYSTALY, 0, NCRYSTALX*NCRYSTALY, 1);           
-        H1F hi_edep_1D    = histo1D("hi_edep_1D",  " ", "Energy (MeV)", "Rate kHz)", 100, 0, 2500, 4); 
+        H1F hi_edep_1D    = histo1D("hi_edep_1D",  " ", "Energy (MeV)", "Rate kHz)", 100, 0, 1000, 4); 
         H1F hi_time_1D    = histo1D("hi_time_1D",  " ", "Time (ns)", "Rate kHz)", 100, 0, Constants.getTimeWindow()*1.2, 4);           
         dg.addDataSet(hi_occ_2D,    0);
         dg.addDataSet(hi_rate_2D,   1);

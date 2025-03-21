@@ -41,7 +41,7 @@ public class DCmodule extends Module {
         for (int is = 0; is < NSECTORS; is++) {
             int sector = is + 1;
             String name = "sector" + sector;
-            H2F hi_occ = histo2D("hi_occ_" + name, "Wire", "layer", NWIRES, 1, NWIRES + 1, NLAYERS, 1, NLAYERS + 1);
+            H2F hi_occ = histo2D("hi_occ_" + name, "Wire", "Layer", NWIRES, 1, NWIRES + 1, NLAYERS, 1, NLAYERS + 1);
             dg.addDataSet(hi_occ, 0 + is);
         }
         return dg;
@@ -273,7 +273,7 @@ public class DCmodule extends Module {
                     if (d instanceof F1D && d.getName().contains(""+(ir+1))) {
                         double par = ((F1D) d).getParameter(0);
                         String text = String.format("\tRegion %d: %.3f", ir+1, par)+"%";
-                        LatexText latexText = new LatexText(text, 50, (ir+1)*30);
+                        LatexText latexText = new LatexText(text, 70, (ir+1)*30);
                         latexText.setColor(ir+2);
                         latexText.setFontSize(30);
                         latexText.setFont("Arial");

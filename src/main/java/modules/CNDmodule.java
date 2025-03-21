@@ -20,6 +20,7 @@ public class CNDmodule extends Module {
     private static final int NLAYER   = 3;
     
     private static final double THRESHOLD = 3; // MeV 
+    private static final double RWINDOW = 250; // ns 
     private static final double[] WEIGHT = {0.5*(3.592+3.987)*3*66.572*1.05/1000,
                                             0.5*(4.000+4.387)*3*70.000*1.05/1000,
                                             0.5*(4.408+4.803)*3*73.428*1.05/1000};
@@ -43,7 +44,7 @@ public class CNDmodule extends Module {
         H1F hi_zeta_1D    = histo1D("hi_zeta_1D",  " ", "Z (cm)", "Rate kHz)", 100, -40, 40, 4);           
         H2F hi_bg_2D      = histo2D("hi_bg_2D", " ", "vz (cm)", "vr (cm)", 100, -100, 100, 100, 0, 100);           
         for (int ip=0; ip<PNAMES.length; ip++) {
-            H1F hi_bg = histo1D("hi_bg_1D_" + PNAMES[ip], PNAMES[ip], "vz (cm)", "Rate [MHz] ", 200, -100, 100, 0);   
+            H1F hi_bg = histo1D("hi_bg_1D_" + PNAMES[ip], PNAMES[ip], "vz (cm)", "Rate [kHz] ", 200, -100, 100, 0);   
             this.setHistoAttr(hi_bg, ip<5 ? ip+1 : ip+3);
             dg.addDataSet(hi_bg, 6);
         }
@@ -74,13 +75,14 @@ public class CNDmodule extends Module {
     public void fillOccupancies(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
             if(hit.getOrder()>1) continue;  // use ADCs only
+            if(Math.toDegrees(hit.getTrue().getPosition().toVector3D().theta())>70) continue;
             int idy = hit.getLayer();
             int idx = hit.getSector()*2+hit.getOrder();
             double edep = hit.getTrue().getEdep();
             if(edep==0)
                 continue;
             else if(edep>THRESHOLD) {
-                group.getH2F("hi_occ_2D").fill(idx, idy);
+                group.getH2F("hi_occ_2D").fill(idx, idy, RWINDOW/Constants.getTimeWindow());
                 group.getH2F("hi_rate_2D").fill(idx, idy);
 //                group.getH1F("hi_occ_1D").fill(hit.getComponent());
                 group.getH1F("hi_time_1D").fill(hit.getTrue().getTime());
@@ -103,7 +105,7 @@ public class CNDmodule extends Module {
         this.normalizeToEventsX100(this.getHistos().get("Occupancy").getH2F("hi_occ_2D"));
 //        this.normalizeToEventsPaddle100(this.getHistos().get("Occupancy").getH1F("hi_occ_1D"));
         this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_rate_2D"));
-        this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_edep_2D"), 1E6);
+//        this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_edep_2D"), 1E6);
         this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_chrg_2D"), 1E6); //uA
         this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_edep_1D"));
         this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_time_1D"));
