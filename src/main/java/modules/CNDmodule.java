@@ -19,21 +19,25 @@ public class CNDmodule extends Module {
     private static final int NPADDLE  = 48;
     private static final int NLAYER   = 3;
     
-    private static final double THRESHOLD = 1; // MeV FIXME
+    private static final double THRESHOLD = 3; // MeV 
     private static final double[] WEIGHT = {0.5*(3.592+3.987)*3*66.572*1.05/2/1000,
                                             0.5*(4.000+4.387)*3*70.000*1.05/2/1000,
                                             0.5*(4.408+4.803)*3*73.428*1.05/2/1000};
-
+    private static final double FADC_SAMPLING = 4; // ns
+    private static final double FADC_LSB      = 1000.0/4096; //mv
+    private static final double FADC_OHMS     = 50; //OHMS
+    
     public CNDmodule() {
         super(DetectorType.CND);
     }
     
     public DataGroup occupancies() {
         DataGroup dg = new DataGroup(3,3);
-        H2F hi_occ_2D     = histo2D("hi_occ_2D", "Occupancy (%)", "X", "Y", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
-        H2F hi_rate_2D    = histo2D("hi_rate_2D", "Rate (kHz)", "X", "Y", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
-        H2F hi_dose_2D    = histo2D("hi_dose_2D", "Dose (rad/h)", "X", "Y", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
-        H2F hi_edep_2D    = histo2D("hi_edep_2D", "Energy deposition rate (MeV/us)", "X", "Y", NPADDLE+2, 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
+        H2F hi_occ_2D     = histo2D("hi_occ_2D", "Occupancy (%)", "Paddle", "Layer", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
+        H2F hi_rate_2D    = histo2D("hi_rate_2D", "Rate (kHz)", "Paddle", "Layer", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
+        H2F hi_dose_2D    = histo2D("hi_dose_2D", "Dose (rad/h)", "Paddle", "Layer", NPADDLE+2 , 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
+        H2F hi_edep_2D    = histo2D("hi_edep_2D", "", "Paddle", "Layer", NPADDLE+2, 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1); // Energy deposition rate (MeV/us)          
+        H2F hi_chrg_2D    = histo2D("hi_chrg_2D", "ADC Input Current (uA)", "Paddle", "Layer", NPADDLE+2, 0, NPADDLE+1, NLAYER+2 , 0, NLAYER+1);           
         H1F hi_edep_1D    = histo1D("hi_edep_1D",  " ", "Energy (MeV)", "Rate kHz)", 100, 0, 500, 4); 
         H1F hi_time_1D    = histo1D("hi_time_1D",  " ", "Time (ns)", "Rate kHz)", 100, 0, Constants.getTimeWindow()*1.2, 4);           
         H1F hi_zeta_1D    = histo1D("hi_zeta_1D",  " ", "Z (cm)", "Rate kHz)", 100, -40, 40, 4);           
@@ -45,7 +49,8 @@ public class CNDmodule extends Module {
         }
         dg.addDataSet(hi_occ_2D,    0);
         dg.addDataSet(hi_rate_2D,   1);
-        dg.addDataSet(hi_edep_2D,   2);
+//        dg.addDataSet(hi_edep_2D,   2);
+        dg.addDataSet(hi_chrg_2D,   2);
         dg.addDataSet(hi_edep_1D,   3);
         dg.addDataSet(hi_time_1D,   4);
         dg.addDataSet(hi_zeta_1D,   5);
@@ -82,7 +87,8 @@ public class CNDmodule extends Module {
                 group.getH1F("hi_zeta_1D").fill(hit.getTrue().getPosition().z()/10);
             }
             group.getH1F("hi_edep_1D").fill(edep);
-            group.getH2F("hi_edep_2D").fill(idx, idy, edep);
+//            group.getH2F("hi_edep_2D").fill(idx, idy, edep);
+            group.getH2F("hi_chrg_2D").fill(idx, idy, ((double) hit.getADC())*FADC_SAMPLING*FADC_LSB/FADC_OHMS); // *4ns*0.25V/50Ohm => pC
             group.getH2F("hi_dose_2D").fill(idx, idy, edep/WEIGHT[idy-1]);
             group.getH2F("hi_bg_2D").fill(hit.getTrue().getVertex().z()/10, Math.sqrt(Math.pow(hit.getTrue().getVertex().x(),2)+
                                                                                       Math.pow(hit.getTrue().getVertex().y(), 2))/10);
@@ -95,9 +101,10 @@ public class CNDmodule extends Module {
     @Override
     public void analyzeHistos() {
         this.normalizeToEventsX100(this.getHistos().get("Occupancy").getH2F("hi_occ_2D"));
-//        this.normalizeToEventsX100(this.getHistos().get("Occupancy").getH1F("hi_occ_1D"));
+//        this.normalizeToEventsPaddle100(this.getHistos().get("Occupancy").getH1F("hi_occ_1D"));
         this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_rate_2D"));
         this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_edep_2D"), 1E6);
+        this.normalizeToTime(this.getHistos().get("Occupancy").getH2F("hi_chrg_2D"), 1E6); //uA
         this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_edep_1D"));
         this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_time_1D"));
         this.normalizeToTime(this.getHistos().get("Occupancy").getH1F("hi_zeta_1D"));

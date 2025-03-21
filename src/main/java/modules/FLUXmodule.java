@@ -25,52 +25,82 @@ public class FLUXmodule extends Module {
         super(DetectorType.TARGET);
     }
     
+    public DataGroup rates() {
+        DataGroup dg = new DataGroup(2,2);
+        
+        for(int il=0; il<2; il++) {
+            double range = 100-55*il;
+            for (int ip=0; ip<PNAMES.length; ip++) {
+                H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
+                this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
+                H1F hi_fwd = histo1D("hi_fwd_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux [Hz/d#Omega] ", (int) (range/DTHETA), 0, range, 0); 
+                this.setHistoAttr(hi_fwd, ip<5 ? ip+1 : ip+3);
+                dg.addDataSet(hi_all, 0 + il*2);
+                dg.addDataSet(hi_fwd, 1 + il*2);
+            }
+        }
+        return dg;
+    }
+  
     public DataGroup fluxes() {
         DataGroup dg = new DataGroup(3,2);
         
         for(int il=0; il<2; il++) {
-            for (int ip=0; ip<PNAMES.length; ip++) {
-                H1F hi_all = histo1D("hi_allflux_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux at R=" + R[il] + "cm [Hz/cm2] ", (int) (100/DTHETA), 0, 100, 0); 
-                this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
-                H1F hi_fwd = histo1D("hi_fwdflux_1D_"+(il+1) + "_" + PNAMES[ip], "", "#theta (deg)", "Flux at R=" + R[il] + "cm [Hz/cm2] ", (int) (100/DTHETA), 0, 100, 0); 
-                this.setHistoAttr(hi_fwd, ip<5 ? ip+1 : ip+3);
-                dg.addDataSet(hi_all, 0 + il*3);
-                dg.addDataSet(hi_fwd, 1 + il*3);
-            }
-            H2F hi_flux = histo2D("hi_allflux_2D_"+(il+1), "Flux (kHz/cm2)", "x (cm)", "y (cm) ", (int) R[il]*2, -R[il], R[il], (int) R[il]*2, -R[il], R[il]); 
-            dg.addDataSet(hi_flux, 2 + il*3);
+            H2F hi_all = histo2D("hi_all_2D_"+(il+1), "Total Flux (Hz/cm2)", "x (cm)", "y (cm) ", (int) R[il]*2, -R[il], R[il], (int) R[il]*2, -R[il], R[il]); 
+            H2F hi_crg = histo2D("hi_crg_2D_"+(il+1), "Charged Flux (Hz/cm2)", "x (cm)", "y (cm) ", (int) R[il]*2, -R[il], R[il], (int) R[il]*2, -R[il], R[il]); 
+            H2F hi_neu = histo2D("hi_neu_2D_"+(il+1), "Neutron Flux (Hz/cm2)", "x (cm)", "y (cm) ", (int) R[il]*2, -R[il], R[il], (int) R[il]*2, -R[il], R[il]); 
+            dg.addDataSet(hi_all, 0 + il*3);
+            dg.addDataSet(hi_crg, 1 + il*3);
+            dg.addDataSet(hi_neu, 2 + il*3);
         }
         return dg;
     }
   
     @Override
     public void createHistos() {
+        this.getHistos().put("Rates", this.rates());
         this.getHistos().put("Fluxes", this.fluxes());
     }
     
     @Override
     public void fillHistos(Event event) {
         if (event.getHits(DetectorType.TARGET) != null) {
+            this.fillRates(this.getHistos().get("Rates"), event.getHits(DetectorType.TARGET));
             this.fillFluxes(this.getHistos().get("Fluxes"), event.getHits(DetectorType.TARGET));
         }
     }
+    
+    public void fillRates(DataGroup group, List<Hit> hits) {
+        for (Hit hit : hits) {
+            double theta = hit.getTrue().getPosition().toVector3D().theta();
+            double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
+            int il = hit.getComponent()/10;
+            boolean fwd = hit.getTrue().getPosition().toVector3D().dot(hit.getTrue().getMomentum())>0;
+            group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);
+            if(fwd)
+                group.getH1F("hi_fwd_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);                
+            if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) {
+                group.getH1F("hi_all_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega);
+                if(fwd)
+                    group.getH1F("hi_fwd_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega);
+            }
+        }
+    }
+    
     
     public void fillFluxes(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
             Vector3D proj = hit.getTrue().getPosition().toVector3D().asUnit();
             double theta = hit.getTrue().getPosition().toVector3D().theta();
             if(theta>Math.toRadians(70)) continue;
-            double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
+            int pid = Math.abs(hit.getTrue().getPid());
             int il = hit.getComponent()/10;
-            boolean fwd = hit.getTrue().getPosition().toVector3D().dot(hit.getTrue().getMomentum())>0;
-            group.getH2F("hi_allflux_2D_" + (il+1)).fill(proj.x()*R[il],proj.y()*R[il]);
-            group.getH1F("hi_allflux_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega/R[il]/R[il]);
-            if(fwd)
-                group.getH1F("hi_fwdflux_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega/R[il]/R[il]);                
-            if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) {
-                group.getH1F("hi_allflux_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega/R[il]/R[il]);
-                if(fwd)
-                    group.getH1F("hi_fwdflux_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega/R[il]/R[il]);
+            group.getH2F("hi_all_2D_" + (il+1)).fill(proj.x()*R[il],proj.y()*R[il]);
+            if(pid==11 || pid==2212 || pid==211) {
+                group.getH2F("hi_crg_2D_" + (il+1)).fill(proj.x()*R[il],proj.y()*R[il]);
+            }
+            else if(pid==2112) {
+                group.getH2F("hi_neu_2D_" + (il+1)).fill(proj.x()*R[il],proj.y()*R[il]);
             }
         }
     }
@@ -78,12 +108,12 @@ public class FLUXmodule extends Module {
     @Override
     public void analyzeHistos() {
         for(int il=0; il<2; il++) {
-            this.normalizeToTime(this.getHistos().get("Fluxes").getH2F("hi_allflux_2D_" + (il+1)), 1);
+            this.normalizeToTime(this.getHistos().get("Fluxes").getH2F("hi_all_2D_" + (il+1)), 1);
+            this.normalizeToTime(this.getHistos().get("Fluxes").getH2F("hi_crg_2D_" + (il+1)), 1);
+            this.normalizeToTime(this.getHistos().get("Fluxes").getH2F("hi_neu_2D_" + (il+1)), 1);
             for (String pn : PNAMES) {
-                this.normalizeToTime(this.getHistos().get("Fluxes").getH1F("hi_allflux_1D_" + (il+1) + "_" + pn), 1);
-                this.normalizeToTime(this.getHistos().get("Fluxes").getH1F("hi_fwdflux_1D_" + (il+1) + "_" + pn), 1);
-                this.getHistos().get("Fluxes").getH1F("hi_allflux_1D_" + (il+1) + "_" + pn).setOptStat("1000001");
-                this.getHistos().get("Fluxes").getH1F("hi_fwdflux_1D_" + (il+1) + "_" + pn).setOptStat("1000001");
+                this.normalizeToTime(this.getHistos().get("Rates").getH1F("hi_all_1D_" + (il+1) + "_" + pn), 1);
+                this.normalizeToTime(this.getHistos().get("Rates").getH1F("hi_fwd_1D_" + (il+1) + "_" + pn), 1);
             }
         }
     }
