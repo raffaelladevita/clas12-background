@@ -369,6 +369,12 @@ public class Module {
         this.normalizeToTime(ds, 1000); // kHz
     }
     
+    public void normalizeToTime(DataGroup dg, double units) {
+      
+        this.normalize(dg, Constants.getTimeWindow()*1E-9*nevents*units); // kHz
+    }
+    
+    
     public void normalizeToTime(DataGroup dg) {
       
         this.normalize(dg, Constants.getTimeWindow()*1E-9*nevents*1000); // kHz

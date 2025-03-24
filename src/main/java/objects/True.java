@@ -39,7 +39,7 @@ public class True implements Comparable {
     }    
     
     public double getKinEnergy() {        
-        return energy-Math.sqrt(energy*energy-momentum.mag2());
+        return energy-Math.sqrt(Math.max(0, energy*energy-momentum.mag2()));
     }
 
     public double getEnergy() {        
@@ -149,8 +149,8 @@ public class True implements Comparable {
     
     @Override
     public String toString() {
-        String s = String.format("True: detector=%s id=%d time=%.3f ns E=%.3f GeV p=%.3f GeV", 
-                                  this.type.getName(), this.hitn, this.time, this.energy, this.momentum.mag());
+        String s = String.format("True: detector=%s id=%d pid=%d time=%.3f ns E=%.3f MeV p=%.3f MeV, Ekin=%.3f MeV", 
+                                  this.type.getName(), this.hitn, this.pid, this.time, this.energy, this.momentum.mag(), this.getKinEnergy());
         return s;
     }
     
