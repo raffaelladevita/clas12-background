@@ -47,6 +47,23 @@ public class FLUXmodule extends Module {
         return dg;
     }
   
+    public DataGroup energies() {
+        DataGroup dg = new DataGroup(3,2);
+        
+        String[] title = {"Central", "Calorimeter", "Forward carriage"};
+        for(int il=0; il<3; il++) {
+            for (int ip=0; ip<PNAMES.length; ip++) {
+                H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "E (MeV)", "Flux [Hz/cm^2] ", 100, 0, 1000, 0); 
+                this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
+                H1F hi_bwd = histo1D("hi_bwd_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "E (MeV)", "Flux [Hz/cm^2] ", 100, 0, 1, 0); 
+                this.setHistoAttr(hi_bwd, ip<5 ? ip+1 : ip+3);
+                dg.addDataSet(hi_all, il + 0);
+                dg.addDataSet(hi_bwd, il + 3);
+            }
+        }
+        return dg;
+    }
+  
     public DataGroup fluxes(double... R) {
         DataGroup dg = new DataGroup(4,3);
         
@@ -80,6 +97,7 @@ public class FLUXmodule extends Module {
     @Override
     public void createHistos() {
         this.getHistos().put("Rates", this.rates());
+        this.getHistos().put("Energies", this.energies());
         this.getHistos().put("Fluxes", this.fluxes(RCND, RTRK, RFC));
         this.getHistos().put("Fluxes E>"+THRESHOLD[1]+" MeV", this.fluxes(RCND, RCAL, RFC));
     }
@@ -88,6 +106,7 @@ public class FLUXmodule extends Module {
     public void fillHistos(Event event) {
         if (event.getHits(DetectorType.TARGET) != null) {
             this.fillRates(this.getHistos().get("Rates"), event.getHits(DetectorType.TARGET));
+            this.fillEnergies(this.getHistos().get("Energies"), event.getHits(DetectorType.TARGET), RCND, RTRK, RFC);
             this.fillFluxes(this.getHistos().get("Fluxes"), event.getHits(DetectorType.TARGET), THRESHOLD[0], RCND, RTRK, RFC);
             this.fillFluxes(this.getHistos().get("Fluxes E>"+THRESHOLD[1]+" MeV"), event.getHits(DetectorType.TARGET), THRESHOLD[1], RCND, RCAL, RFC);
         }
@@ -110,6 +129,24 @@ public class FLUXmodule extends Module {
                 group.getH1F("hi_all_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega);
                 if(hit.getTrue().getKinEnergy()>THRESHOLD[1])
                     group.getH1F("hi_bwd_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega);
+            }
+        }
+    }
+
+    public void fillEnergies(DataGroup group, List<Hit> hits, double... R) {
+        for (Hit hit : hits) {
+                        
+            double theta = hit.getTrue().getPosition().toVector3D().theta();
+            if(theta>Math.toRadians(70) || theta<Math.toRadians(7)) continue;
+            
+            int il = hit.getTrue().getPosition().z()<500&&theta>Math.toRadians(30) ? 0 : 1+hit.getComponent()/10;
+            double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
+            double ds = domega*R[il]*R[il];
+            group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(hit.getTrue().getKinEnergy(), 1/ds);
+            group.getH1F("hi_bwd_1D_" + (il+1) + "_all").fill(hit.getTrue().getKinEnergy(), 1/ds);                
+            if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) {
+                group.getH1F("hi_all_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(hit.getTrue().getKinEnergy(), 1/ds);
+                group.getH1F("hi_bwd_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(hit.getTrue().getKinEnergy(), 1/ds);
             }
         }
     }
@@ -147,6 +184,7 @@ public class FLUXmodule extends Module {
         this.normalizeToTime(this.getHistos().get("Fluxes"), 1);
         this.normalizeToTime(this.getHistos().get("Fluxes E>"+THRESHOLD[1]+" MeV"), 1);
         this.normalizeToTime(this.getHistos().get("Rates"), 1);
+        this.normalizeToTime(this.getHistos().get("Energies"), 1);
     }
     
     @Override
