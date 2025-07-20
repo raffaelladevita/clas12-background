@@ -21,19 +21,19 @@ import org.jlab.groot.ui.TCanvas;
  *
  * @author devita
  */
-public class DCmodule extends Module {
+public class URWELLmodule extends Module {
 
     private static final int NREGIONS = 3;
     private static final int NSECTORS = 6;
-    private static final int NLAYERS = 36;
-    private static final int NWIRES = 112;
+    private static final int NLAYERS = 12;
+    private static final int NSTRIPS = 636;
 
-    private static final double[] RWINDOWS = {500, 1400, 1200};
-    private static final double[] DR = {2500, 4000, 5500};
-    private static final double[] DZ = {3500, 5000, 6500};    
+    private static final double RWINDOWS = 100;
+    private static final double DR = 500;
+    private static final double DZ = 800;    
     
-    public DCmodule() {
-        super(DetectorType.DC);
+    public URWELLmodule() {
+        super(DetectorType.URWELL);
     }
 
     /* occupacy layer vs wire for each sector - need to normalize wrt number of region (3) */
@@ -42,7 +42,7 @@ public class DCmodule extends Module {
         for (int is = 0; is < NSECTORS; is++) {
             int sector = is + 1;
             String name = "sector" + sector;
-            H2F hi_occ = histo2D("hi_occ_" + name, "Wire", "Layer", NWIRES, 1, NWIRES + 1, NLAYERS, 1, NLAYERS + 1);
+            H2F hi_occ = histo2D("hi_occ_" + name, "Wire", "Layer", NSTRIPS, 1, NSTRIPS + 1, NLAYERS, 1, NLAYERS + 1);
             dg.addDataSet(hi_occ, 0 + is);
         }
         return dg;
@@ -57,7 +57,7 @@ public class DCmodule extends Module {
             H1F hi_occ = histo1D("hi_occ_" + name, " ", "Sector", "Occupancy[%] ", NSECTORS, 0.5, NSECTORS + 0.5, 0);
             hi_occ.setLineColor(region + 1);
             hi_occ.setLineWidth(2);
-            H1F hi_wire = histo1D("hi_wire_" + name, " ", "Wire", "Occupancy[%] ", NWIRES, 0.5, NWIRES + 0.5, 0);
+            H1F hi_wire = histo1D("hi_wire_" + name, " ", "Wire", "Occupancy[%] ", NSTRIPS, 0.5, NSTRIPS + 0.5, 0);
             hi_wire.setLineColor(region + 1);
             hi_wire.setLineWidth(2);
             dg.addDataSet(hi_occ, 0);
@@ -83,13 +83,13 @@ public class DCmodule extends Module {
             
             for (int ir = 0; ir < NREGIONS; ir++) {
                 int region = ir + 1;
-                H2F hi_bg_origin_rz = histo2D("hi_bg_origin_rz_region" + region, "Vz(mm)", "r(mm) ", 200, -500., DZ[ir], 200, 0., DR[ir]);
-                H2F hi_bg_origin_xy = histo2D("hi_bg_origin_xy_region" + region, "Vx(mm)", "Vy(mm) ", 200, -DR[ir], DR[ir], 200, -DR[ir], DR[ir]);
+                H2F hi_bg_origin_rz = histo2D("hi_bg_origin_rz_region" + region, "Vz(mm)", "r(mm) ", 200, -500., DZ, 200, 0., DR);
+                H2F hi_bg_origin_xy = histo2D("hi_bg_origin_xy_region" + region, "Vx(mm)", "Vy(mm) ", 200, -DR, DR, 200, -DR, DR);
                 dg[i].addDataSet(hi_bg_origin_xy, 0 + ir);
                 dg[i].addDataSet(hi_bg_origin_rz, 3 + ir);
 
                 double min = -500;
-                double max = DZ[ir];
+                double max = DZ;
                 String name = "Vz(mm)";
                 if(i==1) {
                     min = 0;
@@ -114,7 +114,7 @@ public class DCmodule extends Module {
         for (int is = 0; is < NSECTORS; is++) {
             int sector = is + 1;
             for (int ip=0; ip<PNAMES.length; ip++) {
-                H1F hi_bg = histo1D("hi_bg_r1_s" + sector + "_" + PNAMES[ip], "R1S" +sector + "-" + PNAMES[ip], "Vz(mm)", "Rate [MHz] ", 200, -500, DZ[0], 0);   
+                H1F hi_bg = histo1D("hi_bg_r1_s" + sector + "_" + PNAMES[ip], "R1S" +sector + "-" + PNAMES[ip], "Vz(mm)", "Rate [MHz] ", 200, -500, DZ, 0);   
                 this.setHistoAttr(hi_bg, ip<5 ? ip+1 : ip+3);
                 dg.addDataSet(hi_bg, is);
             }
@@ -128,8 +128,8 @@ public class DCmodule extends Module {
         for (int ir = 0; ir < NREGIONS; ir++) {
             int region = ir + 1;
             String name = "region" + region;
-            H2F hi_posZ_posYR = histo2D("hi-posZ-posR-" + name, "posZ [mm]", "posR [mm]", 300, 0., DZ[ir], 300, 0, DR[ir]);
-            H2F hi_posX_posY = histo2D("hi-posX-posY-" + name, "poX [mm]", "posY [mm]", 200, -DR[ir], DR[ir], 200, -DR[ir], DR[ir]);
+            H2F hi_posZ_posYR = histo2D("hi-posZ-posR-" + name, "posZ [mm]", "posR [mm]", 300, 0., DZ, 300, 0, DR);
+            H2F hi_posX_posY = histo2D("hi-posX-posY-" + name, "poX [mm]", "posY [mm]", 200, -DR, DR, 200, -DR, DR);
             dg.addDataSet(hi_posZ_posYR, ir);
             dg.addDataSet(hi_posX_posY, ir + 3);
         }
@@ -151,13 +151,12 @@ public class DCmodule extends Module {
 
     @Override
     public void fillHistos(Event event) {
-        List<Hit> allhits = event.getHits(DetectorType.DC);
+        List<Hit> allhits = event.getHits(DetectorType.URWELL);
         if (allhits!=null) {
             List<Hit> hits = new ArrayList<>();
             for(Hit h : allhits) {
-                if(h.getTrue()==null || h.getTrue().getEdep()<50E-6)
-                    continue;
-                hits.add(h);
+                if(h.getADC()>1E4) //h.getTrue()==null || h.getTrue().getEdep()>50E-6)
+                    hits.add(h);
             }
             this.fillOccupancies(this.getHistos().get("Sector Occupancy"), hits);
             this.fillOccupancy_region(this.getHistos().get("Region Occupancy"), hits);
@@ -173,7 +172,7 @@ public class DCmodule extends Module {
         if(Constants.getTimeWindow()<0)
             return 1;
         else
-            return RWINDOWS[(layer-1)/12]/Constants.getTimeWindow();
+            return RWINDOWS/Constants.getTimeWindow();
     }
     public void fillOccupancies(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
@@ -184,11 +183,11 @@ public class DCmodule extends Module {
 
     public void fillOccupancy_region(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
-            int region = (hit.getLayer() - 1) / 12 + 1;
+            int region = (hit.getLayer() - 1) / 4 + 1;
             group.getH1F("hi_occ_region" + region).fill(hit.getSector(),this.readoutWeight(hit.getLayer()));
-            group.getH1F("hi_wire_region" + region).fill(hit.getComponent(),this.readoutWeight(hit.getLayer())*NWIRES/NSECTORS);
+            group.getH1F("hi_wire_region" + region).fill(hit.getComponent(),this.readoutWeight(hit.getLayer())*NSTRIPS/NSECTORS);
             group.getH1F("hi_layer").fill(hit.getLayer(),this.readoutWeight(hit.getLayer())*NLAYERS/NREGIONS/NSECTORS);
-            group.getH1F("hi_sl").fill((hit.getLayer()-1)/6+1,this.readoutWeight(hit.getLayer())/NSECTORS*2);
+            group.getH1F("hi_sl").fill((hit.getLayer()-1)/2+1,this.readoutWeight(hit.getLayer())/NSECTORS*2);
         }
     }
 
@@ -199,7 +198,7 @@ public class DCmodule extends Module {
             True t = hit.getTrue();
             if(t==null) continue;
             
-            int region = (hit.getLayer() - 1) / 12 + 1;
+            int region = (hit.getLayer() - 1) / 4 + 1;
             
             double r = Math.sqrt(t.getVertex().x() * t.getVertex().x() + t.getVertex().y() * t.getVertex().y());
             double weight = energyWeight ? t.getKinEnergy() : 1;
@@ -225,7 +224,7 @@ public class DCmodule extends Module {
             True t = hit.getTrue();
             if(t==null) continue;
 
-            int region = (hit.getLayer() - 1) / 12 + 1;
+            int region = (hit.getLayer() - 1) / 4 + 1;
             int sector = hit.getSector();
             
             if(region!=1) continue;
@@ -246,7 +245,7 @@ public class DCmodule extends Module {
             True t = hit.getTrue();
             if(t==null) continue;
 
-            int region = (hit.getLayer() - 1) / 12 + 1;
+            int region = (hit.getLayer() - 1) / 4 + 1;
  
             double r = Math.sqrt(t.getPosition().y() * t.getPosition().y() + t.getPosition().x() * t.getPosition().x());
 //            if (t.getVertex().z() > -150 && t.getVertex().z() < 100 && (t.getPid() == 11 || t.getPid() == -11)) {
@@ -260,7 +259,7 @@ public class DCmodule extends Module {
     @Override
     public void analyzeHistos() {
         this.normalizeToEventsX100(this.getHistos().get("Sector Occupancy"));
-        double norm = 112 * 12 / 100;
+        double norm = 636 * 4 / 100;
         this.normalizeToEvents(this.getHistos().get("Region Occupancy"));
         this.normalize(this.getHistos().get("Region Occupancy"), norm);
 

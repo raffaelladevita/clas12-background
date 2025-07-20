@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.jlab.clas.physics.Particle;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.io.base.DataBank;
 import org.jlab.io.base.DataEvent;
@@ -17,6 +18,7 @@ public class Event {
     
     private int run;
     private int event;
+    private Particle mcParticle;
     private double startTime;
     private double[] raster = new double[2];
     private final Map<DetectorType, List<Hit>> hits   = new HashMap<>();
@@ -54,6 +56,19 @@ public class Event {
         if(head!=null) {
             this.run   = head.getInt("run", 0);
             this.event = head.getInt("event", 0);
+        }
+    }
+    
+    private void readMCParticle(DataEvent event) {
+        DataBank mc = this.getBank(event, "MC::Particle");
+        if(mc!=null && mc.getInt("pid", 0)!=0) {
+            this.mcParticle = new Particle(mc.getInt("pid", 0),
+                                           mc.getFloat("px", 0),
+                                           mc.getFloat("py", 0),
+                                           mc.getFloat("pz", 0),
+                                           mc.getFloat("vx", 0),
+                                           mc.getFloat("vy", 0),
+                                           mc.getFloat("vz", 0));
         }
     }
     
@@ -98,6 +113,7 @@ public class Event {
 
     private void readEvent(DataEvent de, List<DetectorType> types) {
         this.readHeader(de);
+        this.readMCParticle(de);
         this.readStartTime(de);
         this.readRaster(de);
         for(DetectorType t : types) {
@@ -123,6 +139,9 @@ public class Event {
         return event;
     }
 
+    public Particle getGeneratedParticle() {
+        return mcParticle;
+    }
     
     public double getStartTime() {
         return startTime;

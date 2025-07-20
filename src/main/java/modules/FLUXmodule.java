@@ -3,6 +3,7 @@ package modules;
 import java.util.List;
 import objects.Hit;
 import analysis.Module;
+import java.util.Arrays;
 import objects.Event;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.geom.prim.Vector3D;
@@ -10,6 +11,7 @@ import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
 import org.jlab.groot.graphics.EmbeddedPad;
 import org.jlab.groot.group.DataGroup;
+import org.jlab.groot.ui.TCanvas;
 
 /**
  *
@@ -18,16 +20,25 @@ import org.jlab.groot.group.DataGroup;
 public class FLUXmodule extends Module {
     
     private static final double DTHETA = 0.5;
-    private static final double RCND = 30;
+    private static final double RREC = 7.5;
+    private static final double RHOD = 25;
     private static final double RTRK = 40;
     private static final double RCAL = 60;
     private static final double RFC  = 600;
-    private static final double[] tmin = {25,  0,  0}; // cm
-    private static final double[] tmax = {75, 35, 40}; // cm
-    private static final double[] THRESHOLD = {0.01, 15};
+    private static final double[] tmin = {35,  0,  0}; // cm
+    private static final double[] tmax = {75, 40, 40}; // cm
+    private static final double[] THRESHOLD = {0.01, 20};
     
     public FLUXmodule() {
         super(DetectorType.TARGET);
+    }
+    
+    private int[] getLayerIndex(double[] radiuses) {
+        int[] layers = new int[radiuses.length];
+        for(int i=0; i<layers.length; i++) {
+            layers[i] = Math.max(0, i-(layers.length-tmax.length));
+        }
+        return layers;
     }
     
     public DataGroup rates() {
@@ -53,9 +64,26 @@ public class FLUXmodule extends Module {
         String[] title = {"Central", "Calorimeter", "Forward carriage"};
         for(int il=0; il<3; il++) {
             for (int ip=0; ip<PNAMES.length; ip++) {
-                H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "E (MeV)", "Flux [Hz/cm^2] ", 100, 0, 1000, 0); 
+                H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "E (MeV)", "Flux (Hz/cm^2) ", 100, 0, 1000, 0); 
                 this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
-                H1F hi_bwd = histo1D("hi_bwd_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "E (MeV)", "Flux [Hz/cm^2] ", 100, 0, 1, 0); 
+                H1F hi_bwd = histo1D("hi_bwd_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "E (MeV)", "Flux (Hz/cm^2) ", 100, 0, 1, 0); 
+                this.setHistoAttr(hi_bwd, ip<5 ? ip+1 : ip+3);
+                dg.addDataSet(hi_all, il + 0);
+                dg.addDataSet(hi_bwd, il + 3);
+            }
+        }
+        return dg;
+    }
+  
+    public DataGroup origins() {
+        DataGroup dg = new DataGroup(3,2);
+        
+        String[] title = {"Central", "Calorimeter", "Forward carriage"};
+        for(int il=0; il<3; il++) {
+            for (int ip=0; ip<PNAMES.length; ip++) {
+                H1F hi_all = histo1D("hi_all_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "z (cm)", "Flux (Hz/cm^2) ", 500, -100, 900, 0); 
+                this.setHistoAttr(hi_all, ip<5 ? ip+1 : ip+3);
+                H1F hi_bwd = histo1D("hi_bwd_1D_"+(il+1) + "_" + PNAMES[ip], title[il], "z (cm)", "Flux (Hz/cm^2) ", 500, -100, 900, 0); 
                 this.setHistoAttr(hi_bwd, ip<5 ? ip+1 : ip+3);
                 dg.addDataSet(hi_all, il + 0);
                 dg.addDataSet(hi_bwd, il + 3);
@@ -65,29 +93,33 @@ public class FLUXmodule extends Module {
     }
   
     public DataGroup fluxes(double... R) {
-        DataGroup dg = new DataGroup(4,3);
+        DataGroup dg = new DataGroup(4,R.length);
         
-        for(int il=0; il<3; il++) {
+        int[] layers = this.getLayerIndex(R);
+        
+        for(int il=0; il<R.length; il++) {
             String xt = "x (cm)";
             String yt = "y (cm)";
-            double xmin = -R[il]*(0.4+0.2*il);
-            double xmax =  R[il]*(0.4+0.2*il);
-            double ymin = -R[il]*(0.4+0.2*il);
-            double ymax =  R[il]*(0.4+0.2*il);
-            if(il==0) {
+            int li = layers[il];
+            double xmin = -Math.floor(R[il]*Math.sin(Math.toRadians(tmax[li])));
+            double xmax =  Math.floor(R[il]*Math.sin(Math.toRadians(tmax[li])));
+            double ymin = -Math.floor(R[il]*Math.sin(Math.toRadians(tmax[li])));
+            double ymax =  Math.floor(R[il]*Math.sin(Math.toRadians(tmax[li])));
+            if(li==0) {
                 yt = "R#phi (cm)";
                 xt = "z (cm)";
-                xmin = 0;
-                xmax = R[il]*2;
-                ymin = -R[il]*3.5;
-                ymax =  R[il]*3.5;
+                xmin = Math.ceil(R[il]/Math.tan(Math.toRadians(tmax[0]-5)));
+                xmax = Math.floor(R[il]/Math.tan(Math.toRadians(tmin[0]+5)));
+                ymin = -Math.floor(R[il]*2*Math.PI)/2;
+                ymax =  Math.floor(R[il]*2*Math.PI)/2;
             }
-            H2F hi_all = histo2D("hi_all_2D_"+(il+1), "Total Flux (Hz/cm2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax); 
-            H2F hi_cap = histo2D("hi_cap_2D_"+(il+1), "Charged+photon Flux (Hz/cm2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax); 
-            H2F hi_crg = histo2D("hi_crg_2D_"+(il+1), "Charged Flux (Hz/cm2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax); 
-            H2F hi_neu = histo2D("hi_neu_2D_"+(il+1), "Neutron Flux (Hz/cm2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax);  
+            System.out.println((int) (ymax-ymin) + " " + ymin + " " + ymax);
+            H2F hi_all = histo2D("hi_all_2D_"+(il+1), "Total Flux (Hz/cm^2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax); 
+            H2F hi_pho = histo2D("hi_pho_2D_"+(il+1), "Photon Flux (Hz/cm^2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax); 
+            H2F hi_crg = histo2D("hi_crg_2D_"+(il+1), "Charged Flux (Hz/cm^2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax); 
+            H2F hi_neu = histo2D("hi_neu_2D_"+(il+1), "Neutron Flux (Hz/cm^2)", xt, yt, (int) (xmax-xmin), xmin, xmax, (int) (ymax-ymin), ymin, ymax);  
             dg.addDataSet(hi_all, 0 + il*4);
-            dg.addDataSet(hi_cap, 1 + il*4);
+            dg.addDataSet(hi_pho, 1 + il*4);
             dg.addDataSet(hi_crg, 2 + il*4);
             dg.addDataSet(hi_neu, 3 + il*4);
         }
@@ -98,30 +130,48 @@ public class FLUXmodule extends Module {
     public void createHistos() {
         this.getHistos().put("Rates", this.rates());
         this.getHistos().put("Energies", this.energies());
-        this.getHistos().put("Fluxes", this.fluxes(RCND, RTRK, RFC));
-        this.getHistos().put("Fluxes E>"+THRESHOLD[1]+" MeV", this.fluxes(RCND, RCAL, RFC));
+        this.getHistos().put("Origins", this.origins());
+        this.getHistos().put("Fluxes", this.fluxes(RREC, RHOD, RTRK, RFC));
+        this.getHistos().put("Fluxes E>"+THRESHOLD[1]+" MeV", this.fluxes(RHOD, RCAL, RFC));
     }
     
     @Override
     public void fillHistos(Event event) {
         if (event.getHits(DetectorType.TARGET) != null) {
             this.fillRates(this.getHistos().get("Rates"), event.getHits(DetectorType.TARGET));
-            this.fillEnergies(this.getHistos().get("Energies"), event.getHits(DetectorType.TARGET), RCND, RTRK, RFC);
-            this.fillFluxes(this.getHistos().get("Fluxes"), event.getHits(DetectorType.TARGET), THRESHOLD[0], RCND, RTRK, RFC);
-            this.fillFluxes(this.getHistos().get("Fluxes E>"+THRESHOLD[1]+" MeV"), event.getHits(DetectorType.TARGET), THRESHOLD[1], RCND, RCAL, RFC);
+            this.fillEnergies(this.getHistos().get("Energies"), event.getHits(DetectorType.TARGET), RHOD, RTRK, RFC);
+            this.fillOrigins(this.getHistos().get("Origins"), event.getHits(DetectorType.TARGET), RHOD, RTRK, RFC);
+            this.fillFluxes(this.getHistos().get("Fluxes"), event.getHits(DetectorType.TARGET), THRESHOLD[0], RREC, RHOD, RTRK, RFC);
+            this.fillFluxes(this.getHistos().get("Fluxes E>"+THRESHOLD[1]+" MeV"), event.getHits(DetectorType.TARGET), THRESHOLD[1], RHOD, RCAL, RFC);
         }
+    }
+    
+    private int getFluxIndex(Hit hit) {
+        int il = -1;
+        double theta = hit.getTrue().getPosition().toVector3D().theta();
+        if(hit.getComponent()==1 && theta<Math.toRadians(70) && theta>Math.toRadians(40)) {
+            il=0;
+        }            
+        else if(hit.getComponent()==1 && theta<Math.toRadians(35) && theta>Math.toRadians(7.5)) {            
+            il = 1;
+        }
+        else if(hit.getComponent()==10 && theta<Math.toRadians(35) && theta>Math.atan(0.05)) {            
+            il = 2;
+        }
+        return il;
     }
     
     public void fillRates(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
             
             if(hit.getTrue().getKinEnergy()<THRESHOLD[0]) continue;
+    
+            int il = this.getFluxIndex(hit);
+            if(il<0) continue;
             
             double theta = hit.getTrue().getPosition().toVector3D().theta();
             double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
-            if(theta>Math.toRadians(70) || theta<Math.toRadians(7)) continue;
             
-            int il = hit.getTrue().getPosition().z()<500&&theta>Math.toRadians(30) ? 0 : 1+hit.getComponent()/10;
             group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);
             if(hit.getTrue().getKinEnergy()>THRESHOLD[1])
                 group.getH1F("hi_bwd_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);                
@@ -136,10 +186,10 @@ public class FLUXmodule extends Module {
     public void fillEnergies(DataGroup group, List<Hit> hits, double... R) {
         for (Hit hit : hits) {
                         
+            int il = this.getFluxIndex(hit);
+            if(il<0) continue;
+
             double theta = hit.getTrue().getPosition().toVector3D().theta();
-            if(theta>Math.toRadians(70) || theta<Math.toRadians(7)) continue;
-            
-            int il = hit.getTrue().getPosition().z()<500&&theta>Math.toRadians(30) ? 0 : 1+hit.getComponent()/10;
             double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
             double ds = domega*R[il]*R[il];
             group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(hit.getTrue().getKinEnergy(), 1/ds);
@@ -152,28 +202,54 @@ public class FLUXmodule extends Module {
     }
     
     
-    public void fillFluxes(DataGroup group, List<Hit> hits, double threshold, double... R) {
+    public void fillOrigins(DataGroup group, List<Hit> hits, double... R) {
         for (Hit hit : hits) {
+                        
+            int il = this.getFluxIndex(hit);
+            if(il<0) continue;
+
+            double theta = hit.getTrue().getPosition().toVector3D().theta();
+            double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
+            double ds = domega*R[il]*R[il];
+            group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(hit.getTrue().getVertex().z(), 1/ds);
+            group.getH1F("hi_bwd_1D_" + (il+1) + "_all").fill(hit.getTrue().getVertex().z(), 1/ds);                
+            if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) {
+                group.getH1F("hi_all_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(hit.getTrue().getVertex().z(), 1/ds);
+                group.getH1F("hi_bwd_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(hit.getTrue().getVertex().z(), 1/ds);
+            }
+        }
+    }
+    
+    
+    public void fillFluxes(DataGroup group, List<Hit> hits, double threshold, double... R) {
+        
+        int[] layers = this.getLayerIndex(R);
+        
+        for (Hit hit : hits) {
+
             if(hit.getTrue().getKinEnergy()<threshold) continue;
 
+            int il = this.getFluxIndex(hit);
+            if(il<0) continue;
+
             Vector3D proj = hit.getTrue().getPosition().toVector3D().asUnit();
-            double theta = hit.getTrue().getPosition().toVector3D().theta();
-            if(theta>Math.toRadians(70) || theta<Math.toRadians(9)) continue;
 
             int pid = Math.abs(hit.getTrue().getPid());
-
-            int il = hit.getTrue().getPosition().z()<500&&theta>Math.toRadians(30) ? 0 : 1+hit.getComponent()/10;
-            double radius = R[il];
-            double x = il==0 ? hit.getTrue().getPosition().z() : proj.x()*radius;
-            double y = il==0 ? proj.phi()*radius : proj.y()*radius;
-            group.getH2F("hi_all_2D_" + (il+1)).fill(x, y);
-            if(pid==2112) {
-                group.getH2F("hi_neu_2D_" + (il+1)).fill(x, y);
-            }
-            else {
-                group.getH2F("hi_cap_2D_" + (il+1)).fill(x, y);
-                if(pid==11 || pid==2212 || pid==211) {
-                    group.getH2F("hi_crg_2D_" + (il+1)).fill(x, y);
+            
+            for(int i=0; i<layers.length; i++) {
+                if(il!=layers[i]) continue;
+                double radius = R[i];
+                double x = il==0 ? proj.z()*radius/Math.sqrt(proj.x()*proj.x()+proj.y()*proj.y()) : proj.x()*radius;
+                double y = il==0 ? Math.rint(proj.phi()*radius) : proj.y()*radius;
+                group.getH2F("hi_all_2D_" + (i+1)).fill(x, y);
+                if(pid==2112) {
+                    group.getH2F("hi_neu_2D_" + (i+1)).fill(x, y);
+                }
+                else if(pid==22) {
+                    group.getH2F("hi_pho_2D_" + (i+1)).fill(x, y);
+                }
+                else if(pid==11 || pid==2212 || pid==211) {
+                        group.getH2F("hi_crg_2D_" + (i+1)).fill(x, y);
                 }
             }
         }
@@ -196,8 +272,12 @@ public class FLUXmodule extends Module {
                 for(int i=0; i<pad.getDatasetPlotters().size(); i++) {
                     H1F h = (H1F) pad.getDatasetPlotters().get(i).getDataSet();
                     if(h.getMax()>max) max = h.getMax();
-                    if(h.getMin()<min) min = h.getMin();
+                    if(h.getIntegral()>0 &&
+                       h.getIntegral()/h.getDataSize(0)<min) min = h.getIntegral()/h.getDataSize(0);  
                 }
+                if(max<1) max = 1;
+                if(min==Double.MAX_VALUE) min = 0;
+                System.out.println(min + " " + max);
                 pad.getAxisY().setLog(true);
                 pad.getAxisY().setRange(min/10, 10*max);
                 pad.setOptStat("100001");
@@ -211,6 +291,39 @@ public class FLUXmodule extends Module {
 
             }
         }
+        if(key.contains("MeV")) {            
+
+            TCanvas recoil = new TCanvas("Recoil", 1500, 600);
+            recoil.divide(3,1);
+            recoil.getCanvas().setGridX(false);
+            recoil.getCanvas().setGridY(false);
+            recoil.getCanvas().setCanvasPads(Arrays.asList(this.getCanvas().getCanvas("Fluxes").getPad(0),
+                                                           this.getCanvas().getCanvas("Fluxes").getPad(1),
+                                                           this.getCanvas().getCanvas("Fluxes").getPad(2)));
+
+            TCanvas hodoscope = new TCanvas("Hodoscope", 1500, 600);
+            hodoscope.divide(2,1);
+            hodoscope.getCanvas().setGridX(false);
+            hodoscope.getCanvas().setGridY(false);
+            hodoscope.getCanvas().setCanvasPads(Arrays.asList(this.getCanvas().getCanvas("Rates").getPad(0),
+                                                              this.getCanvas().getCanvas("Fluxes").getPad(6)));
+
+            TCanvas vtracker = new TCanvas("Trk", 1500, 600);
+            vtracker.divide(3,1);
+            vtracker.getCanvas().setGridX(false);
+            vtracker.getCanvas().setGridY(false);
+            vtracker.getCanvas().setCanvasPads(Arrays.asList(this.getCanvas().getCanvas("Fluxes").getPad(8),
+                                                             this.getCanvas().getCanvas("Fluxes").getPad(9),
+                                                             this.getCanvas().getCanvas("Fluxes").getPad(10)));
+
+            TCanvas cal = new TCanvas("Cal", 1500, 600);
+            cal.divide(3,1);
+            cal.getCanvas().setGridX(false);
+            cal.getCanvas().setGridY(false);
+            cal.getCanvas().setCanvasPads(Arrays.asList(this.getCanvas().getCanvas("Fluxes E>"+THRESHOLD[1]+" MeV").getPad(4),
+                                                        this.getCanvas().getCanvas("Fluxes E>"+THRESHOLD[1]+" MeV").getPad(5),
+                                                        this.getCanvas().getCanvas("Fluxes E>"+THRESHOLD[1]+" MeV").getPad(6)));
+        }      
     }
    
 }

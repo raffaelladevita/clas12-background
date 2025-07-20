@@ -75,7 +75,7 @@ public class CNDmodule extends Module {
     public void fillOccupancies(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
             if(hit.getOrder()>1) continue;  // use ADCs only
-            if(Math.toDegrees(hit.getTrue().getPosition().toVector3D().theta())>70) continue;
+            if(hit.getTrue()==null || Math.toDegrees(hit.getTrue().getPosition().toVector3D().theta())>70) continue;
             int idy = hit.getLayer();
             int idx = hit.getSector()*2+hit.getOrder();
             double edep = hit.getTrue().getEdep();

@@ -37,7 +37,7 @@ public class Module {
     private List<String> canvasNames = new ArrayList<>();
     private int nevents;
     
-    public static final String[] PNAMES = {"all", "electron", "gamma", "neutron", "proton", "pion", "other"};
+    public static final String[] PNAMES = {"all", "electron", "gamma", "gamma0", "neutron", "proton", "pion", "other"};
         
     public Module(DetectorType type){                               
         this.moduleType = type;
@@ -228,6 +228,10 @@ public class Module {
     }
         
     public final void readDataGroup(TDirectory dir) {
+        this.readDataGroup(dir, false);
+    }
+    
+    public final void readDataGroup(TDirectory dir, boolean compare) {
         for(String key : moduleGroup.keySet()) {
             String folder = this.getName() + "/" + key + "/";
             System.out.println("Reading from: " + folder);
@@ -240,9 +244,12 @@ public class Module {
                 List<IDataSet> dsList = group.getData(i);
                 for(IDataSet ds : dsList){
                     System.out.println("\t --> " + ds.getName());
-                    if(dir.getObject(folder, ds.getName())!=null)
-                        newGroup.addDataSet(dir.getObject(folder, ds.getName()),i);
-                    else
+                    IDataSet dsn = dir.getObject(folder, ds.getName());
+                    if(dsn!=null) {
+                        dsn.setName(dsn.getName()+"c");
+                        newGroup.addDataSet(dsn,i);
+                    }
+                    if(dsn==null || compare)
                         newGroup.addDataSet(ds,i);
                 }
             }            
