@@ -156,7 +156,7 @@ public class BMTmodule extends Module {
         if (allhits!=null) {
             List<Hit> hits = new ArrayList<>();
             for(Hit h : allhits) {
-                if(h.getADC()>0 || h.getTrue().getPid()==-22) //h.getTrue()==null || h.getTrue().getEdep()>50E-6)
+                if(h.getADC()>0 || (h.getTrue()!=null && h.getTrue().getPid()==-22)) //h.getTrue()==null || h.getTrue().getEdep()>50E-6)
                     hits.add(h);
             }
             this.fillOccupancies(this.getHistos().get("Sector Occupancy"), hits);
@@ -177,6 +177,7 @@ public class BMTmodule extends Module {
     }
     public void fillOccupancies(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
+            if(hit.getTrue()==null) continue;
 //            System.out.println(hit.getTrue().getEdep() + " " + hit.getTrue().getTime()+ " " + hit.getTDC());
             double rho = hit.getTrue().getPosition().toVector3D().rho();
             double z = hit.getTrue().getPosition().z();

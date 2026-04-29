@@ -9,6 +9,7 @@ import org.jlab.detector.base.DetectorType;
 import org.jlab.geom.prim.Vector3D;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
+import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.graphics.EmbeddedPad;
 import org.jlab.groot.group.DataGroup;
 import org.jlab.groot.ui.TCanvas;
@@ -175,10 +176,11 @@ public class FLUXmodule extends Module {
             group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);
             if(hit.getTrue().getKinEnergy()>THRESHOLD[1])
                 group.getH1F("hi_bwd_1D_" + (il+1) + "_all").fill(Math.toDegrees(theta), 1/domega);                
-            if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) {
-                group.getH1F("hi_all_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega);
+            String pname = this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid()))); 
+            if(pname!=null) {
+                group.getH1F("hi_all_1D_" + (il+1) + "_" + pname).fill(Math.toDegrees(theta), 1/domega);
                 if(hit.getTrue().getKinEnergy()>THRESHOLD[1])
-                    group.getH1F("hi_bwd_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(Math.toDegrees(theta), 1/domega);
+                    group.getH1F("hi_bwd_1D_" + (il+1) + "_" + pname).fill(Math.toDegrees(theta), 1/domega);
             }
         }
     }
@@ -193,10 +195,11 @@ public class FLUXmodule extends Module {
             double domega = 2*Math.PI*Math.sin(theta)*Math.toRadians(DTHETA);
             double ds = domega*R[il]*R[il];
             group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(hit.getTrue().getKinEnergy(), 1/ds);
-            group.getH1F("hi_bwd_1D_" + (il+1) + "_all").fill(hit.getTrue().getKinEnergy(), 1/ds);                
-            if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) {
-                group.getH1F("hi_all_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(hit.getTrue().getKinEnergy(), 1/ds);
-                group.getH1F("hi_bwd_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(hit.getTrue().getKinEnergy(), 1/ds);
+            group.getH1F("hi_bwd_1D_" + (il+1) + "_all").fill(hit.getTrue().getKinEnergy(), 1/ds);
+            String pname = this.pidToName(Math.abs(hit.getTrue().getPid())); 
+            if(pname!=null) {
+                group.getH1F("hi_all_1D_" + (il+1) + "_" + pname).fill(hit.getTrue().getKinEnergy(), 1/ds);
+                group.getH1F("hi_bwd_1D_" + (il+1) + "_" + pname).fill(hit.getTrue().getKinEnergy(), 1/ds);
             }
         }
     }
@@ -213,9 +216,12 @@ public class FLUXmodule extends Module {
             double ds = domega*R[il]*R[il];
             group.getH1F("hi_all_1D_" + (il+1) + "_all").fill(hit.getTrue().getVertex().z(), 1/ds);
             group.getH1F("hi_bwd_1D_" + (il+1) + "_all").fill(hit.getTrue().getVertex().z(), 1/ds);                
-            if(this.pidToName(Math.abs(Math.abs(hit.getTrue().getPid())))!=null) {
-                group.getH1F("hi_all_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(hit.getTrue().getVertex().z(), 1/ds);
-                group.getH1F("hi_bwd_1D_" + (il+1) + "_" + this.pidToName(Math.abs(hit.getTrue().getPid()))).fill(hit.getTrue().getVertex().z(), 1/ds);
+            String pname = this.pidToName(Math.abs(hit.getTrue().getPid())); 
+            if(pname!=null) {
+                if(pname=="other")
+                    System.out.println(hit.getTrue().getPid());
+                group.getH1F("hi_all_1D_" + (il+1) + "_" + pname).fill(hit.getTrue().getVertex().z(), 1/ds);
+                group.getH1F("hi_bwd_1D_" + (il+1) + "_" + pname).fill(hit.getTrue().getVertex().z(), 1/ds);
             }
         }
     }
@@ -248,7 +254,7 @@ public class FLUXmodule extends Module {
                 else if(pid==22) {
                     group.getH2F("hi_pho_2D_" + (i+1)).fill(x, y);
                 }
-                else if(pid==11 || pid==2212 || pid==211) {
+                else if(pid==11 || pid==2212 || pid==211 || pid==321 || pid==13) {
                         group.getH2F("hi_crg_2D_" + (i+1)).fill(x, y);
                 }
             }
@@ -280,7 +286,7 @@ public class FLUXmodule extends Module {
                 System.out.println(min + " " + max);
                 pad.getAxisY().setLog(true);
                 pad.getAxisY().setRange(min/10, 10*max);
-                pad.setOptStat("100001");
+//                pad.setOptStat("100001");
             }
             else {
                 H2F h = (H2F) pad.getDatasetPlotters().get(0).getDataSet();
@@ -300,14 +306,16 @@ public class FLUXmodule extends Module {
             recoil.getCanvas().setCanvasPads(Arrays.asList(this.getCanvas().getCanvas("Fluxes").getPad(0),
                                                            this.getCanvas().getCanvas("Fluxes").getPad(1),
                                                            this.getCanvas().getCanvas("Fluxes").getPad(2)));
-
+            this.setZMax(recoil.getCanvas());
+       
             TCanvas hodoscope = new TCanvas("Hodoscope", 1500, 600);
             hodoscope.divide(2,1);
             hodoscope.getCanvas().setGridX(false);
             hodoscope.getCanvas().setGridY(false);
             hodoscope.getCanvas().setCanvasPads(Arrays.asList(this.getCanvas().getCanvas("Rates").getPad(0),
                                                               this.getCanvas().getCanvas("Fluxes").getPad(6)));
-
+            hodoscope.getCanvas().getPad(0).setTitle("Recoil");
+            
             TCanvas vtracker = new TCanvas("Trk", 1500, 600);
             vtracker.divide(3,1);
             vtracker.getCanvas().setGridX(false);
@@ -315,6 +323,7 @@ public class FLUXmodule extends Module {
             vtracker.getCanvas().setCanvasPads(Arrays.asList(this.getCanvas().getCanvas("Fluxes").getPad(8),
                                                              this.getCanvas().getCanvas("Fluxes").getPad(9),
                                                              this.getCanvas().getCanvas("Fluxes").getPad(10)));
+            this.setZMax(vtracker.getCanvas());
 
             TCanvas cal = new TCanvas("Cal", 1500, 600);
             cal.divide(3,1);
@@ -323,7 +332,21 @@ public class FLUXmodule extends Module {
             cal.getCanvas().setCanvasPads(Arrays.asList(this.getCanvas().getCanvas("Fluxes E>"+THRESHOLD[1]+" MeV").getPad(4),
                                                         this.getCanvas().getCanvas("Fluxes E>"+THRESHOLD[1]+" MeV").getPad(5),
                                                         this.getCanvas().getCanvas("Fluxes E>"+THRESHOLD[1]+" MeV").getPad(6)));
+            this.setZMax(cal.getCanvas());
         }      
     }
    
+    private void setZMax(EmbeddedCanvas canvas) {
+        
+        double zmin = Double.MAX_VALUE;
+        double zmax = 0;
+        for(EmbeddedPad pad : canvas.getCanvasPads()) {
+            zmin = Math.min(zmin,pad.getDatasetPlotters().getFirst().getDataRegion().getDimension(2).getMin());
+            zmax = Math.max(zmax,pad.getDatasetPlotters().getFirst().getDataRegion().getDimension(2).getMax());
+        }
+        
+        for(EmbeddedPad pad : canvas.getCanvasPads()) {
+            pad.getAxisZ().setRange(zmin, zmax);
+        }
+    }
 }

@@ -37,7 +37,7 @@ public class Module {
     private List<String> canvasNames = new ArrayList<>();
     private int nevents;
     
-    public static final String[] PNAMES = {"all", "electron", "gamma", "gamma0", "neutron", "proton", "pion", "other"};
+    public static final String[] PNAMES = {"all", "electron", "gamma", /*"gamma0",*/ "neutron", "proton", "pion", "other"};
         
     public Module(DetectorType type){                               
         this.moduleType = type;
@@ -137,6 +137,11 @@ public class Module {
                 return "proton";
             case 211:
                 return "pion";
+            case 12:
+            case 14:
+            case 16:
+            case 130:
+                return null;
             default:
                 return "other";
         }
@@ -161,7 +166,7 @@ public class Module {
             this.moduleCanvas.getCanvas(key).setGridX(false);
             this.moduleCanvas.getCanvas(key).setGridY(false);
             for(EmbeddedPad pad : this.moduleCanvas.getCanvas(key).getCanvasPads()) {
-                pad.setTitleFontSize(18);
+                pad.setTitleFontSize(28);
                 pad.setTitleFont("Arial");
             }
         }

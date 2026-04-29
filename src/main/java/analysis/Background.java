@@ -52,11 +52,11 @@ public class Background {
     private void init(String active, double window, String opts) {
         OPTSTAT = opts;
         GStyle.getH1FAttributes().setOptStat(opts);
-        GStyle.getAxisAttributesX().setTitleFontSize(24);
-        GStyle.getAxisAttributesX().setLabelFontSize(18);
-        GStyle.getAxisAttributesY().setTitleFontSize(24);
-        GStyle.getAxisAttributesY().setLabelFontSize(18);
-        GStyle.getAxisAttributesZ().setLabelFontSize(12);
+        GStyle.getAxisAttributesX().setTitleFontSize(28);
+        GStyle.getAxisAttributesX().setLabelFontSize(22);
+        GStyle.getAxisAttributesY().setTitleFontSize(28);
+        GStyle.getAxisAttributesY().setLabelFontSize(22);
+        GStyle.getAxisAttributesZ().setLabelFontSize(16);
         GStyle.getAxisAttributesX().setLabelFontName("Arial");
         GStyle.getAxisAttributesY().setLabelFontName("Arial");
         GStyle.getAxisAttributesZ().setLabelFontName("Arial");

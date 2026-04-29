@@ -317,7 +317,7 @@ public class DCmodule extends Module {
                 this.getHistos().get("Region Occupancy").getH1F("hi_wire_region3").setLineWidth(1);
             }
             else {
-                TCanvas canvas = new TCanvas("DC", 1500, 800);
+                TCanvas canvas = new TCanvas("DC", 1300, 600);
                 canvas.divide(2, 1);
                 canvas.getCanvas().setGridX(false);
                 canvas.getCanvas().setGridY(false);
