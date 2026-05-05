@@ -1,5 +1,6 @@
 package analysis;
 
+import java.awt.Color;
 import objects.Event;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +9,7 @@ import javax.swing.JTabbedPane;
 import modules.CNDmodule;
 import modules.DCmodule;
 import modules.FTCALmodule;
+import modules.URWTmodule;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.groot.base.GStyle;
 import org.jlab.groot.data.H1F;
@@ -48,23 +50,25 @@ public class Background {
     private void init(String active, double window, String opts) {
         OPTSTAT = opts;
         GStyle.getH1FAttributes().setOptStat(opts);
-        GStyle.getAxisAttributesX().setTitleFontSize(18);
-        GStyle.getAxisAttributesX().setLabelFontSize(14);
-        GStyle.getAxisAttributesY().setTitleFontSize(18);
-        GStyle.getAxisAttributesY().setLabelFontSize(14);
-        GStyle.getAxisAttributesZ().setLabelFontSize(12);
+        GStyle.getAxisAttributesX().setTitleFontSize(28);
+        GStyle.getAxisAttributesX().setLabelFontSize(22);
+        GStyle.getAxisAttributesY().setTitleFontSize(28);
+        GStyle.getAxisAttributesY().setLabelFontSize(22);
+        GStyle.getAxisAttributesZ().setLabelFontSize(16);
         GStyle.getAxisAttributesX().setLabelFontName("Arial");
         GStyle.getAxisAttributesY().setLabelFontName("Arial");
         GStyle.getAxisAttributesZ().setLabelFontName("Arial");
         GStyle.getAxisAttributesX().setTitleFontName("Arial");
         GStyle.getAxisAttributesY().setTitleFontName("Arial");
         GStyle.getAxisAttributesZ().setTitleFontName("Arial");
-        GStyle.setGraphicsFrameLineWidth(2);
+        GStyle.setGraphicsFrameLineWidth(1);
         GStyle.getH1FAttributes().setLineWidth(1);
-        GStyle.setPalette("kRainBow");
+        GStyle.setBackgroundColor(Color.WHITE);
+        GStyle.setPalette("kBird");
 
         Constants.setTimeWindow(window);  
         this.addModule(active, new DCmodule());
+        this.addModule(active, new URWTmodule());
         this.addModule(active, new FTCALmodule());
         this.addModule(active, new CNDmodule());
     }
@@ -99,9 +103,12 @@ public class Background {
         for(Module m : modules) m.analyzeHistos();
     }
 
-    public JTabbedPane plotHistos() {
+    public JTabbedPane plotHistos(String compFile) {
+        if(!compFile.isEmpty())
+            this.readHistos(compFile, true);
         JTabbedPane panel = new JTabbedPane();
         for(Module m : modules) {
+            System.out.println("Plotting " + m.getName());
             EmbeddedCanvasTabbed canvas = m.plotHistos();
             for(String name : m.getCanvasNames()) {
                 for(EmbeddedPad p : canvas.getCanvas(name).getCanvasPads()) {
@@ -120,6 +127,9 @@ public class Background {
     }
     
     public void readHistos(String fileName) {
+        this.readHistos(fileName, false);
+    }
+    public void readHistos(String fileName, boolean compare) {
         System.out.println("Opening file: " + fileName);
         TDirectory dir = new TDirectory();
         dir.readFile(fileName);
@@ -127,7 +137,7 @@ public class Background {
         dir.cd();
         dir.pwd();
         for(Module m : modules) {
-            m.readDataGroup(dir);
+            m.readDataGroup(dir,compare);
         }
     }
 
@@ -163,6 +173,7 @@ public class Background {
         // histogram based analysis
         parser.addOption("-histo"      ,"0",       "read histogram file (0/1)");
         parser.addOption("-plot"       ,"1",       "display histograms (0/1)");
+        parser.addOption("-comp"       ,"",        "histogram file to compare to s");
         parser.addOption("-print"      ,"0",       "print histograms (0/1)");
         parser.addOption("-stats"      ,"",        "histogram stat option (e.g. \"10\" will display entries)");
         parser.addOption("-time"       ,"250",     "simulated time window per event in ns");
@@ -179,6 +190,7 @@ public class Background {
         boolean readHistos    = (parser.getOption("-histo").intValue()!=0);            
         boolean openWindow    = (parser.getOption("-plot").intValue()!=0);
         boolean printHistos   = (parser.getOption("-print").intValue()!=0);
+        String  compFile      = parser.getOption("-comp").stringValue(); 
         String  optStats      = parser.getOption("-stats").stringValue(); 
         String  modules       = parser.getOption("-modules").stringValue();
         double  timeWindow    = parser.getOption("-time").doubleValue();
@@ -232,7 +244,7 @@ public class Background {
         if(openWindow) {
             JFrame frame = new JFrame("Background");
             frame.setSize(1400, 900);
-            frame.add(bgMon.plotHistos());
+            frame.add(bgMon.plotHistos(compFile));
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
             if(printHistos) bgMon.printHistos();

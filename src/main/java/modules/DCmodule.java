@@ -15,6 +15,7 @@ import org.jlab.groot.data.IDataSet;
 import org.jlab.groot.graphics.EmbeddedPad;
 import org.jlab.groot.group.DataGroup;
 import org.jlab.groot.ui.LatexText;
+import org.jlab.groot.ui.TCanvas;
 
 /**
  *
@@ -27,7 +28,7 @@ public class DCmodule extends Module {
     private static final int NLAYERS = 36;
     private static final int NWIRES = 112;
 
-    private static final double[] RWINDOWS = {250, 500, 500};
+    private static final double[] RWINDOWS = {500, 1400, 1200};
     private static final double[] DR = {2500, 4000, 5500};
     private static final double[] DZ = {3500, 5000, 6500};    
     
@@ -41,7 +42,7 @@ public class DCmodule extends Module {
         for (int is = 0; is < NSECTORS; is++) {
             int sector = is + 1;
             String name = "sector" + sector;
-            H2F hi_occ = histo2D("hi_occ_" + name, "Wire", "layer", NWIRES, 1, NWIRES + 1, NLAYERS, 1, NLAYERS + 1);
+            H2F hi_occ = histo2D("hi_occ_" + name, "Wire", "Layer", NWIRES, 1, NWIRES + 1, NLAYERS, 1, NLAYERS + 1);
             dg.addDataSet(hi_occ, 0 + is);
         }
         return dg;
@@ -49,17 +50,25 @@ public class DCmodule extends Module {
 
     /*  occupancy vs sector for each region - need to normalize wrt number of layer (12) and wires (112)    */
     public DataGroup occupancy_region() {
-        DataGroup dg = new DataGroup(1, 1);
+        DataGroup dg = new DataGroup(2, 2);
         for (int ir = 0; ir < NREGIONS; ir++) {
             int region = ir + 1;
             String name = "region" + region;
-            H1F hi_occ = histo1D("hi_occ_" + name, name, "Sector", "Occupancy[%] ", NSECTORS, 0.5, NSECTORS + 0.5, 0);
+            H1F hi_occ = histo1D("hi_occ_" + name, " ", "Sector", "Occupancy[%] ", NSECTORS, 0.5, NSECTORS + 0.5, 0);
             hi_occ.setLineColor(region + 1);
-            hi_occ.setLineWidth(4);
-
+            hi_occ.setLineWidth(2);
+            H1F hi_wire = histo1D("hi_wire_" + name, " ", "Wire", "Occupancy[%] ", NWIRES, 0.5, NWIRES + 0.5, 0);
+            hi_wire.setLineColor(region + 1);
+            hi_wire.setLineWidth(2);
             dg.addDataSet(hi_occ, 0);
-
+            dg.addDataSet(hi_wire, 1);
         }
+        H1F hi_lay = histo1D("hi_layer", " ", "Layer", "Occupancy[%] ", NLAYERS, 0.5, NLAYERS + 0.5, 0);
+        hi_lay.setLineWidth(2);
+        H1F hi_sl = histo1D("hi_sl", " ", "Superlayer", "Occupancy[%] ", NREGIONS*2, 0.5, NREGIONS*2 + 0.5, 0);
+        hi_sl.setLineWidth(2);
+        dg.addDataSet(hi_lay, 2);
+        dg.addDataSet(hi_sl, 3);
         return dg;
     }
 
@@ -146,8 +155,9 @@ public class DCmodule extends Module {
         if (allhits!=null) {
             List<Hit> hits = new ArrayList<>();
             for(Hit h : allhits) {
-                if(h.getTrue().getEdep()>50E-6)
-                    hits.add(h);
+//                if(h.getTrue()!=null && (h.getTrue().getEdep()<100E-6 || h.getTrue().getTime()>250))
+//                    continue;
+                hits.add(h);
             }
             this.fillOccupancies(this.getHistos().get("Sector Occupancy"), hits);
             this.fillOccupancy_region(this.getHistos().get("Region Occupancy"), hits);
@@ -159,17 +169,27 @@ public class DCmodule extends Module {
 
     }
 
+    private double readoutWeight(int layer) {
+        if(Constants.getTimeWindow()<0)
+            return 1;
+        else
+            return RWINDOWS[(layer-1)/12]/Constants.getTimeWindow();
+    }
+    
     public void fillOccupancies(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
 //            System.out.println(hit.getTrue().getEdep() + " " + hit.getTrue().getTime()+ " " + hit.getTDC());
-            group.getH2F("hi_occ_sector" + hit.getSector()).fill(hit.getComponent(), hit.getLayer(),RWINDOWS[(hit.getLayer()-1)/12]/Constants.getTimeWindow());
+            group.getH2F("hi_occ_sector" + hit.getSector()).fill(hit.getComponent(), hit.getLayer(),this.readoutWeight(hit.getLayer()));
         }
     }
 
     public void fillOccupancy_region(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
             int region = (hit.getLayer() - 1) / 12 + 1;
-            group.getH1F("hi_occ_region" + region).fill(hit.getSector(),RWINDOWS[region-1]/Constants.getTimeWindow());
+            group.getH1F("hi_occ_region" + region).fill(hit.getSector(),this.readoutWeight(hit.getLayer()));
+            group.getH1F("hi_wire_region" + region).fill(hit.getComponent(),this.readoutWeight(hit.getLayer())*NWIRES/NSECTORS);
+            group.getH1F("hi_layer").fill(hit.getLayer(),this.readoutWeight(hit.getLayer())*NLAYERS/NREGIONS/NSECTORS);
+            group.getH1F("hi_sl").fill((hit.getLayer()-1)/6+1,this.readoutWeight(hit.getLayer())/NSECTORS*2);
         }
     }
 
@@ -178,6 +198,7 @@ public class DCmodule extends Module {
         for (Hit hit : hits) {
             
             True t = hit.getTrue();
+            if(t==null) continue;
 
             int region = (hit.getLayer() - 1) / 12 + 1;
             
@@ -203,6 +224,7 @@ public class DCmodule extends Module {
         for (Hit hit : hits) {
             
             True t = hit.getTrue();
+            if(t==null) continue;
 
             int region = (hit.getLayer() - 1) / 12 + 1;
             int sector = hit.getSector();
@@ -223,6 +245,8 @@ public class DCmodule extends Module {
         for (Hit hit : hits) {
 
             True t = hit.getTrue();
+            if(t==null) continue;
+
             int region = (hit.getLayer() - 1) / 12 + 1;
  
             double r = Math.sqrt(t.getPosition().y() * t.getPosition().y() + t.getPosition().x() * t.getPosition().x());
@@ -262,6 +286,50 @@ public class DCmodule extends Module {
 
     @Override
     public void setPlottingOptions(String name) {
+        if(name.equals("Region Occupancy")) {
+            if(this.getHistos().get("Sector Occupancy").getH2F("hi_occ_sector1c")!=null) {
+                TCanvas canvas = new TCanvas("DC", 1000, 800);
+                canvas.divide(2, 2);
+                canvas.getCanvas().setGridX(false);
+                canvas.getCanvas().setGridY(false);
+                canvas.cd(1);
+                canvas.draw(this.getHistos().get("Sector Occupancy").getH2F("hi_occ_sector1"));
+                canvas.getCanvas().getPad().getAxisZ().setRange(0, 6);
+                canvas.cd(2);
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_wire_region1"));
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_wire_region2"),"same");
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_wire_region3"),"same");
+                canvas.getCanvas().getPad().getAxisZ().setRange(0, 7);
+                canvas.cd(3);
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_layer"));
+                canvas.cd(0);
+                canvas.draw(this.getHistos().get("Sector Occupancy").getH2F("hi_occ_sector1c"));
+                canvas.getCanvas().getPad().getAxisZ().setRange(0, 7);            
+                canvas.cd(2);
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_wire_region1c"),"same");
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_wire_region2c"),"same");
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_wire_region3c"),"same");
+                canvas.getCanvas().getPad().getAxisZ().setRange(0, 7);
+                canvas.cd(3);
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_layerc"),"same");
+                this.getHistos().get("Region Occupancy").getH1F("hi_layer").setLineWidth(1);
+                this.getHistos().get("Region Occupancy").getH1F("hi_wire_region1").setLineWidth(1);
+                this.getHistos().get("Region Occupancy").getH1F("hi_wire_region2").setLineWidth(1);
+                this.getHistos().get("Region Occupancy").getH1F("hi_wire_region3").setLineWidth(1);
+            }
+            else {
+                TCanvas canvas = new TCanvas("DC", 1300, 600);
+                canvas.divide(2, 1);
+                canvas.getCanvas().setGridX(false);
+                canvas.getCanvas().setGridY(false);
+                canvas.cd(0);
+                canvas.draw(this.getHistos().get("Sector Occupancy").getH2F("hi_occ_sector1"));
+                canvas.cd(1);
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_wire_region1"));
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_wire_region2"),"same");
+                canvas.draw(this.getHistos().get("Region Occupancy").getH1F("hi_wire_region3"),"same");
+            }
+        } 
         for(EmbeddedPad pad : this.getCanvas(name).getCanvasPads()) {
             pad.setTitle("");
         }
@@ -273,12 +341,15 @@ public class DCmodule extends Module {
                     if (d instanceof F1D && d.getName().contains(""+(ir+1))) {
                         double par = ((F1D) d).getParameter(0);
                         String text = String.format("\tRegion %d: %.3f", ir+1, par)+"%";
-                        LatexText latexText = new LatexText(text, 50, (ir+1)*30);
+                        LatexText latexText = new LatexText(text, 70, (ir+1)*30);
                         latexText.setColor(ir+2);
                         latexText.setFontSize(30);
                         latexText.setFont("Arial");
+                        this.getCanvas().getCanvas(name).cd(0);
                         this.getCanvas().getCanvas(name).draw(latexText);
                     }
+//                    else if(d instanceof H1F && d.getName().endsWith("c"))
+//                        ((H1F) d).getAttributes().setLineStyle(2);
                 }
             }
         }

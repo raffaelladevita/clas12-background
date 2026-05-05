@@ -137,8 +137,13 @@ public class Module {
                 return "proton";
             case 211:
                 return "pion";
-            default:
+            case 12:
+            case 14:
+            case 16:
+            case 130:
                 return null;
+            default:
+                return "other";
         }
     }
     
@@ -161,7 +166,7 @@ public class Module {
             this.moduleCanvas.getCanvas(key).setGridX(false);
             this.moduleCanvas.getCanvas(key).setGridY(false);
             for(EmbeddedPad pad : this.moduleCanvas.getCanvas(key).getCanvasPads()) {
-                pad.setTitleFontSize(18);
+                pad.setTitleFontSize(28);
                 pad.setTitleFont("Arial");
             }
         }
@@ -228,6 +233,10 @@ public class Module {
     }
         
     public final void readDataGroup(TDirectory dir) {
+        this.readDataGroup(dir, false);
+    }
+    
+    public final void readDataGroup(TDirectory dir, boolean compare) {
         for(String key : moduleGroup.keySet()) {
             String folder = this.getName() + "/" + key + "/";
             System.out.println("Reading from: " + folder);
@@ -240,9 +249,12 @@ public class Module {
                 List<IDataSet> dsList = group.getData(i);
                 for(IDataSet ds : dsList){
                     System.out.println("\t --> " + ds.getName());
-                    if(dir.getObject(folder, ds.getName())!=null)
-                        newGroup.addDataSet(dir.getObject(folder, ds.getName()),i);
-                    else
+                    IDataSet dsn = dir.getObject(folder, ds.getName());
+                    if(dsn!=null) {
+                        dsn.setName(dsn.getName()+"c");
+                        newGroup.addDataSet(dsn,i);
+                    }
+                    if(dsn==null || compare)
                         newGroup.addDataSet(ds,i);
                 }
             }            
@@ -368,6 +380,12 @@ public class Module {
         
         this.normalizeToTime(ds, 1000); // kHz
     }
+    
+    public void normalizeToTime(DataGroup dg, double units) {
+      
+        this.normalize(dg, Constants.getTimeWindow()*1E-9*nevents*units); // kHz
+    }
+    
     
     public void normalizeToTime(DataGroup dg) {
       
