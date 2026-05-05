@@ -115,5 +115,10 @@ public class CNDmodule extends Module {
                 this.setLegend("Occupancy", 250, 140);
         }
     }
-   
+
+    @Override
+    public void testHistos() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
 }

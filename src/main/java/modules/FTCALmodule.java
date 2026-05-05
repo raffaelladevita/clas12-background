@@ -93,5 +93,10 @@ public class FTCALmodule extends Module {
             this.getCanvas(key).getCanvasPads().get(3).getAxisY().setLog(true);
         }
     }
+
+    @Override
+    public void testHistos() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
    
 }

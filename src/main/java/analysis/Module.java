@@ -29,7 +29,7 @@ import org.jlab.groot.ui.LatexText;
  *
  * @author devita
  */
-public class Module {    
+public abstract class Module {    
     
     private final DetectorType moduleType;
     private Map<String,DataGroup> moduleGroup  = new LinkedHashMap<>();
@@ -44,22 +44,14 @@ public class Module {
         this.init();
     }
 
-    public void analyzeHistos() {
-        // analyze the histograms at the end of the file processing
-    }
-
+    public abstract void analyzeHistos();         // analyze the histograms at the end of the file processing
     
-    public void createHistos() {
-        // create histograms
-    }
+    public abstract void createHistos();          // create histograms
     
-    public void testHistos() {
-        // run tests on the filled histograms
-    }
-    
-    public void fillHistos(Event event) {
-        // fill the histograms
-    }
+    public abstract void testHistos();            // run tests on the filled histograms
+        
+    public abstract void fillHistos(Event event); // fill the histograms
+  
 
     public final String getName() {
         return moduleType.getName();
@@ -188,9 +180,7 @@ public class Module {
         this.moduleGroup = group;
     }
     
-    public void setPlottingOptions(String name) {
-        
-    }
+    public abstract void setPlottingOptions(String name);
 
     public void setLogZ(String name) {
         for(EmbeddedPad p : this.getCanvas().getCanvas(name).getCanvasPads()) {
