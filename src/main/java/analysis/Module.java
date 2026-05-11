@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import objects.Event;
 import org.jlab.detector.base.DetectorType;
+import org.jlab.groot.base.DatasetAttributes;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
 import org.jlab.groot.data.IDataSet;
@@ -243,6 +244,10 @@ public abstract class Module {
                     if(dsn!=null) {
                         dsn.setName(dsn.getName()+"c");
                         newGroup.addDataSet(dsn,i);
+                        if(dsn instanceof H1F){
+                            H1F hi = (H1F) dsn;
+                            hi.setLineWidth(1);
+                        }
                     }
                     if(dsn==null || compare)
                         newGroup.addDataSet(ds,i);

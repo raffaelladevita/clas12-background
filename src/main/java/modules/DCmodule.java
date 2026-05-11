@@ -155,7 +155,7 @@ public class DCmodule extends Module {
         if (allhits!=null) {
             List<Hit> hits = new ArrayList<>();
             for(Hit h : allhits) {
-//                if(h.getTrue()!=null && (h.getTrue().getEdep()<100E-6 || h.getTrue().getTime()>250))
+//                if(h.getTrue()!=null && (h.getTrue().getEdep()<100E-6 || h.getTrue().getTime()>this.readoutWindow(h.getLayer())))
 //                    continue;
                 hits.add(h);
             }
@@ -169,27 +169,33 @@ public class DCmodule extends Module {
 
     }
 
-    private double readoutWeight(int layer) {
-        if(Constants.getTimeWindow()<0)
-            return 1;
-        else
-            return RWINDOWS[(layer-1)/12]/Constants.getTimeWindow();
+    private double readoutWindow(int layer) {
+        return RWINDOWS[(layer-1)/12];
+    }
+    
+    private double scaleToReadoutWindow(int layer) {
+        return Math.max(1,this.readoutWindow(layer)/Constants.getTimeWindow());
+    }
+    
+    private double scaleToTimeWindow(int layer) {
+        return Math.max(1,Constants.getTimeWindow()/this.readoutWindow(layer));
     }
     
     public void fillOccupancies(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
 //            System.out.println(hit.getTrue().getEdep() + " " + hit.getTrue().getTime()+ " " + hit.getTDC());
-            group.getH2F("hi_occ_sector" + hit.getSector()).fill(hit.getComponent(), hit.getLayer(),this.readoutWeight(hit.getLayer()));
+            group.getH2F("hi_occ_sector" + hit.getSector()).fill(hit.getComponent(), hit.getLayer(),this.scaleToReadoutWindow(hit.getLayer()));
         }
     }
 
     public void fillOccupancy_region(DataGroup group, List<Hit> hits) {
         for (Hit hit : hits) {
             int region = (hit.getLayer() - 1) / 12 + 1;
-            group.getH1F("hi_occ_region" + region).fill(hit.getSector(),this.readoutWeight(hit.getLayer()));
-            group.getH1F("hi_wire_region" + region).fill(hit.getComponent(),this.readoutWeight(hit.getLayer())*NWIRES/NSECTORS);
-            group.getH1F("hi_layer").fill(hit.getLayer(),this.readoutWeight(hit.getLayer())*NLAYERS/NREGIONS/NSECTORS);
-            group.getH1F("hi_sl").fill((hit.getLayer()-1)/6+1,this.readoutWeight(hit.getLayer())/NSECTORS*2);
+            double weight = this.scaleToReadoutWindow(hit.getLayer());
+            group.getH1F("hi_occ_region" + region).fill(hit.getSector(),weight);
+            group.getH1F("hi_wire_region" + region).fill(hit.getComponent(),weight*NWIRES/NSECTORS);
+            group.getH1F("hi_layer").fill(hit.getLayer(),weight*NLAYERS/NREGIONS/NSECTORS);
+            group.getH1F("hi_sl").fill((hit.getLayer()-1)/6+1,weight/NSECTORS*2);
         }
     }
 
@@ -202,19 +208,22 @@ public class DCmodule extends Module {
 
             int region = (hit.getLayer() - 1) / 12 + 1;
             
+            double timeWeight = this.scaleToTimeWindow(hit.getLayer());
+            
             double r = Math.sqrt(t.getVertex().x() * t.getVertex().x() + t.getVertex().y() * t.getVertex().y());
             double weight = energyWeight ? t.getKinEnergy() : 1;
+            weight *= timeWeight;
 //            System.out.println(weight);
             group.getH2F("hi_bg_origin_rz_region" + region).fill(t.getVertex().z(), r, weight);
             if (t.getVertex().z() > 1000 * (region)) 
                 group.getH2F("hi_bg_origin_xy_region" + region).fill(t.getVertex().x(), t.getVertex().y(), weight);
             
             double value = energyWeight ? t.getKinEnergy() : t.getVertex().z();
-            group.getH1F("hi_bg_region" + region + "_all").fill(value);
+            group.getH1F("hi_bg_region" + region + "_all").fill(value, timeWeight);
             if(this.pidToName(Math.abs(Math.abs(t.getPid())))!=null) 
-                group.getH1F("hi_bg_region" + region + "_" + this.pidToName(Math.abs(t.getPid()))).fill(value);
+                group.getH1F("hi_bg_region" + region + "_" + this.pidToName(Math.abs(t.getPid()))).fill(value, timeWeight);
             else 
-                group.getH1F("hi_bg_region" + region + "_other").fill(value);
+                group.getH1F("hi_bg_region" + region + "_other").fill(value, timeWeight);
         }
 
     }
@@ -231,11 +240,12 @@ public class DCmodule extends Module {
             
             if(region!=1) continue;
             
-             group.getH1F("hi_bg_r1_s" + sector + "_all").fill(t.getVertex().z());
+            double timeWeight = this.scaleToTimeWindow(hit.getLayer());
+            group.getH1F("hi_bg_r1_s" + sector + "_all").fill(t.getVertex().z(), timeWeight);
             if(this.pidToName(Math.abs(Math.abs(t.getPid())))!=null) 
-                group.getH1F("hi_bg_r1_s" + sector + "_" + this.pidToName(Math.abs(t.getPid()))).fill(t.getVertex().z());
+                group.getH1F("hi_bg_r1_s" + sector + "_" + this.pidToName(Math.abs(t.getPid()))).fill(t.getVertex().z(), timeWeight);
             else 
-                group.getH1F("hi_bg_r1_s" + sector + "_other").fill(t.getVertex().z());
+                group.getH1F("hi_bg_r1_s" + sector + "_other").fill(t.getVertex().z(), timeWeight);
         }
 
     }
@@ -270,7 +280,7 @@ public class DCmodule extends Module {
         this.divide(this.getHistos().get("Origin of Bg - Energy"), this.getHistos().get("Origin of Bg"));
         this.normalizeToTime(this.getHistos().get("Origin of Bg"));
         this.normalizeToTime(this.getHistos().get("Origin of Bg - Energy"));
-
+        this.normalizeToTime(this.getHistos().get("Origin of Bg - Sector"));
     }
 
 

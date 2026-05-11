@@ -237,7 +237,7 @@ public class Background {
                 reader.close();
             }    
             bgMon.analyzeHistos();
-            bgMon.testHistos();
+//            bgMon.testHistos();
             bgMon.saveHistos(histoName);
         }
 
