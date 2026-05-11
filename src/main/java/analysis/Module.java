@@ -94,7 +94,10 @@ public class Module {
     //    histo.setTitle("");
         histo.setTitleX(xTitle);
         histo.setTitleY(yTitle);
-        histo.setFillColor(color);
+        if(color>=0)
+            histo.setFillColor(color);
+        else
+            this.setHistoAttr(histo, -color);
         return histo;
     }
 
